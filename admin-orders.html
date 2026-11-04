@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Trị Đơn Vé — Minimal Admin</title>
+    <style>
+        :root {
+            --bg-page: #fafafa;
+            --bg-surface: #ffffff;
+            --bg-subtle: #f4f4f5;
+            --bg-hover: #f8f8f9;
+            --text-primary: #09090b;
+            --text-secondary: #52525b;
+            --text-muted: #71717a;
+            --border: #e4e4e7;
+            --border-strong: #d4d4d8;
+            --accent-black: #09090b;
+            --accent-black-hover: #27272a;
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+            --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            padding: 24px 20px 60px;
+        }
+
+        .container {
+            max-width: 1380px;
+            margin: 0 auto;
+        }
+
+        /* ================= LOGIN GATE (MINIMAL MONOCHROME) ================= */
+        .login-overlay {
+            max-width: 400px;
+            margin: 80px auto;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px 28px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .login-overlay h2 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .login-overlay p {
+            color: var(--text-secondary);
+            font-size: 13.5px;
+            margin-bottom: 22px;
+        }
+
+        .login-field {
+            margin-bottom: 16px;
+        }
+
+        .login-field label {
+            display: block;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .login-field input {
+            width: 100%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-strong);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .login-field input:focus {
+            border-color: var(--text-primary);
+        }
+
+        .login-error {
+            color: #dc2626;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 12.5px;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        /* ================= TOP HEADER ================= */
+        .top-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand-area h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        .brand-area p {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* ================= BUTTONS & PILLS ================= */
+        button,
+        .btn-link {
+            cursor: pointer;
+            font-family: var(--font-sans);
+            border-radius: var(--radius-md);
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-decoration: none;
+            line-height: 1.2;
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .btn-solid {
+            background: var(--accent-black);
+            color: #ffffff;
+            border: 1px solid var(--accent-black);
+        }
+
+        .btn-solid:hover:not(:disabled) {
+            background: var(--accent-black-hover);
+        }
+
+        .btn-outline {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-strong);
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            background: var(--bg-subtle);
+            border-color: #a1a1aa;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg-subtle);
+            color: var(--text-primary);
+        }
+
+        .role-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .role-super {
+            background: var(--text-primary);
+            color: #ffffff;
+        }
+
+        .role-reviewer {
+            background: var(--bg-subtle);
+            color: var(--text-primary);
+            border: 1px solid var(--border-strong);
+        }
+
+        /* ================= STATS BAR (COMPACT & CLEAN) ================= */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px 18px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .stat-card .value {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ================= BOOTSTRAP & SUPER ADMIN DRAWER ================= */
+        .bootstrap-banner {
+            background: var(--bg-surface);
+            border: 2px solid var(--text-primary);
+            border-radius: var(--radius-lg);
+            padding: 18px 22px;
+            margin-bottom: 18px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .security-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            display: none;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .security-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        @media (max-width: 900px) {
+            .security-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .security-field label {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .security-field input {
+            width: 100%;
+            background: var(--bg-page);
+            border: 1px solid var(--border-strong);
+            color: var(--text-primary);
+            padding: 8px 11px;
+            border-radius: var(--radius-md);
+            font-size: 12.5px;
+            font-family: var(--font-mono);
+            outline: none;
+        }
+
+        .security-field input:focus {
+            border-color: var(--text-primary);
+            background: var(--bg-surface);
+        }
+
+        .batch-bar {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--text-primary);
+            border-radius: var(--radius-md);
+            padding: 12px 18px;
+            margin-bottom: 16px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ================= SEARCH & QUICK FILTER TOOLBAR ================= */
+        .toolbar {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-box-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 280px;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box-wrap input {
+            width: 100%;
+            background: var(--bg-page);
+            border: 1px solid var(--border-strong);
+            color: var(--text-primary);
+            padding: 9px 70px 9px 14px;
+            border-radius: var(--radius-md);
+            font-size: 13.5px;
+            outline: none;
+            transition: all 0.15s;
+        }
+
+        .search-box-wrap input:focus {
+            background: var(--bg-surface);
+            border-color: var(--text-primary);
+            box-shadow: 0 0 0 2px rgba(9, 9, 11, 0.08);
+        }
+
+        .search-Clear-btn {
+            position: absolute;
+            right: 8px;
+            background: var(--bg-subtle);
+            color: var(--text-secondary);
+            border: none;
+            padding: 3px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .filter-tabs {
+            display: inline-flex;
+            background: var(--bg-subtle);
+            padding: 3px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            font-size: 12.5px;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+
+        .filter-tab.active {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .filter-tab .count {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 1px 5px;
+            border-radius: 99px;
+            background: rgba(0, 0, 0, 0.06);
+            margin-left: 4px;
+        }
+
+        /* ================= MINIMAL DATA TABLE ================= */
+        .table-wrapper {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow-x: auto;
+            box-shadow: var(--shadow-sm);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        th,
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        th {
+            background: var(--bg-page);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        tbody tr {
+            transition: background-color 0.1s;
+        }
+
+        tbody tr:hover td {
+            background-color: var(--bg-hover);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .mono-num {
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .copyable {
+            cursor: pointer;
+            border-bottom: 1px dotted var(--border-strong);
+            transition: color 0.12s;
+        }
+
+        .copyable:hover {
+            color: #000;
+            border-bottom-color: #000;
+        }
+
+        .customer-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 13.5px;
+        }
+
+        .sub-meta {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .memo-tag {
+            display: inline-block;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 3px;
+        }
+
+        /* ================= STATUS BADGES (MONOCHROME) ================= */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 99px;
+            font-size: 11.5px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-pending {
+            background: #ffffff;
+            color: var(--text-secondary);
+            border: 1px dashed var(--border-strong);
+        }
+
+        .badge-verified {
+            background: var(--bg-subtle);
+            color: var(--text-primary);
+            border: 1px solid var(--text-primary);
+        }
+
+        .badge-approved {
+            background: var(--text-primary);
+            color: #ffffff;
+            border: 1px solid var(--text-primary);
+        }
+
+        /* ================= TICKET PILLS & BILL THUMBNAIL ================= */
+        .ticket-code-pill {
+            display: inline-block;
+            background: var(--bg-page);
+            border: 1px solid var(--border-strong);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 4px;
+            margin: 2px 2px 2px 0;
+        }
+
+        .ticket-masked-pill {
+            display: inline-block;
+            background: var(--bg-subtle);
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            margin: 2px 2px 2px 0;
+        }
+
+        .bill-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            border: 1px solid var(--border-strong);
+            cursor: pointer;
+            transition: transform 0.15s;
+            background: var(--bg-subtle);
+        }
+
+        .bill-thumb:hover {
+            transform: scale(1.08);
+            border-color: var(--text-primary);
+        }
+
+        .btn-table-action {
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: var(--radius-sm);
+        }
+
+        .status-msg {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13.5px;
+        }
+
+        /* ================= MODALS (LIGHTBOX & TICKET) ================= */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(9, 9, 11, 0.65);
+            backdrop-filter: blur(2px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 9999;
+        }
+
+        .modal-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            max-width: 720px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        .lightbox-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            max-width: 880px;
+            width: 95%;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        .lightbox-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-surface);
+        }
+
+        .lightbox-body {
+            padding: 20px;
+            overflow: auto;
+            text-align: center;
+            background: #18181b;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 340px;
+        }
+
+        .lightbox-img {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: var(--radius-sm);
+            transition: transform 0.2s ease;
+        }
+
+        .lightbox-toolbar {
+            padding: 12px 20px;
+            background: var(--bg-surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* ================= TOAST COPY ================= */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--text-primary);
+            color: #ffffff;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-size: 12.5px;
+            font-weight: 500;
+            box-shadow: var(--shadow-md);
+            opacity: 0;
+            transform: translateY(8px);
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 10000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- CỔNG ĐĂNG NHẬP MINIMAL -->
+    <div id="admin-login-gate" class="login-overlay">
+        <h2>Đăng nhập Quản trị</h2>
+        <p>Hệ thống quản lý đơn vé <strong id="login-event-name">...</strong></p>
+        <form id="admin-login-form">
+            <div class="login-field">
+                <label for="admin-email">Email tài khoản</label>
+                <input type="email" id="admin-email" required placeholder="name@example.com" autocomplete="username">
+            </div>
+            <div class="login-field">
+                <label for="admin-password">Mật khẩu</label>
+                <input type="password" id="admin-password" required placeholder="••••••••"
+                    autocomplete="current-password">
+            </div>
+            <div id="admin-login-error" class="login-error"></div>
+            <button type="submit" class="btn-solid" style="width: 100%; padding: 11px;">Tiếp tục</button>
+        </form>
+    </div>
+
+    <!-- DASHBOARD CHÍNH -->
+    <div class="container" id="admin-dashboard-container" style="display: none;">
+        <div class="top-header">
+            <div class="brand-area">
+                <h1 id="dashboard-title">Quản Trị Đơn Đặt Vé</h1>
+                <p id="dashboard-subtitle">Nhấp vào SĐT, Mã đơn hoặc Nội dung CK trên bảng để sao chép nhanh</p>
+            </div>
+            <div class="header-actions">
+                <span id="role-badge" class="role-pill role-reviewer">Đang kiểm tra quyền...</span>
+                <button type="button" id="btn-toggle-settings" class="btn-outline" style="display: none;">⚙️ Cấu hình
+                    Bảo mật</button>
+                <a href="checkin.html" class="btn-outline btn-link">📷 Cổng Soát Vé</a>
+                <a href="index.html" class="btn-ghost btn-link">← Trang đặt vé</a>
+                <span id="admin-user-badge" class="mono-num"
+                    style="font-size: 12px; color: var(--text-muted); padding: 0 4px;"></span>
+                <button id="btn-logout" class="btn-outline" style="padding: 6px 10px; font-size: 12px;">Đăng
+                    xuất</button>
+            </div>
+        </div>
+
+        <!-- HỘP KHỞI TẠO SUPER ADMIN ĐẦU TIÊN -->
+        <div id="bootstrap-banner" class="bootstrap-banner">
+            <div style="max-width: 760px;">
+                <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">Khởi tạo Tài khoản Super Admin gốc
+                    trên Server</h3>
+                <p style="font-size: 13px; color: var(--text-secondary);">
+                    Nhấn nút bên cạnh để khóa tài khoản hiện tại làm Super Admin trên Firestore Server. Các tài khoản
+                    nhân viên khác sẽ tự động ở chế độ Nhân viên đối soát Bill (ẩn mã vé).
+                </p>
+            </div>
+            <button type="button" id="btn-claim-super" class="btn-solid">
+                Khóa Tài Khoản Này Làm Super Admin
+            </button>
+        </div>
+
+        <!-- BẢNG CẤU HÌNH BẢO MẬT SERVER (ĐÓNG/MỞ GỌN GÀNG CHO SUPER ADMIN) -->
+        <div id="super-security-panel" class="security-panel">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
+                    Cấu hình Bảo mật Server (`system_secrets/config` — Chỉ Super Admin)
+                </span>
+                <span id="security-save-status" style="font-size: 12px; font-weight: 600;"></span>
+            </div>
+            <div class="security-grid">
+                <div class="security-field">
+                    <label for="hmac-secret-input">Khóa Bí Mật Ký Số Mã Vé (HMAC-SHA256)</label>
+                    <input type="password" id="hmac-secret-input" placeholder="Khóa bí mật trên Server...">
+                </div>
+                <div class="security-field">
+                    <label for="webhook-url-input">Google Apps Script Webhook URLs (Cách nhau dấu phẩy để xoay
+                        vòng)</label>
+                    <input type="text" id="webhook-url-input" placeholder="https://script.google.com/macros/s/.../exec">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-outline" id="btn-toggle-secret">Hiện khóa</button>
+                    <button type="button" class="btn-solid" id="btn-save-security">Lưu cấu hình</button>
+                </div>
+            </div>
+            <div class="security-field" style="margin-top: 12px;">
+                <label for="super-emails-input">Danh sách Email Super Admin (VD: 3 tài khoản, cách nhau bằng dấu
+                    phẩy)</label>
+                <input type="text" id="super-emails-input"
+                    placeholder="admin1@gmail.com, admin2@gmail.com, admin3@gmail.com">
+            </div>
+        </div>
+
+        <!-- THANH PHÁT HÀNH VÉ HÀNG LOẠT (CHỈ SUPER ADMIN) -->
+        <div id="super-batch-bar" class="batch-bar">
+            <div>
+                <div style="font-weight: 700; font-size: 13.5px;">
+                    Phát hành vé & Gửi Email tự động hàng loạt
+                </div>
+                <div id="batch-progress-text" style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">
+                    Hiện có <strong id="verified-count-label" class="mono-num">0</strong> đơn đã được nhân viên xác nhận
+                    Bill chờ cấp vé.
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" id="btn-batch-verified" class="btn-solid">
+                    ⚡ Cấp vé & Gửi mail các đơn đã soi Bill
+                </button>
+                <button type="button" id="btn-batch-stop" class="btn-outline" style="display: none;">
+                    Dừng hàng đợi
+                </button>
+            </div>
+        </div>
+
+        <!-- THỐNG KÊ NHANH -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Đơn hiển thị</div>
+                <div class="value" id="stat-total-orders">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Tổng số lượng vé</div>
+                <div class="value" id="stat-total-tickets">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Tổng doanh thu</div>
+                <div class="value" id="stat-total-revenue">0 ₫</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Chờ soi / Đã soi / Đã cấp vé</div>
+                <div class="value" id="stat-status-ratio" style="font-size: 18px;">0 / 0 / 0</div>
+            </div>
+        </div>
+
+        <!-- THANH TRA CỨU NHANH & LỌC 1 CHẠM -->
+        <div class="toolbar">
+            <div class="search-box-wrap">
+                <input type="text" id="search-input"
+                    placeholder="Tìm nhanh theo Tên, SĐT, Email, Mã đơn, Mã vé, Nội dung CK... (Nhấn / để tìm)">
+                <button type="button" id="btn-clear-search" class="search-Clear-btn">✕ Xóa</button>
+            </div>
+
+            <div class="filter-tabs" id="quick-filter-tabs">
+                <button type="button" class="filter-tab active" data-status="ALL">
+                    Tất cả <span class="count" id="cnt-all">0</span>
+                </button>
+                <button type="button" class="filter-tab" data-status="PENDING">
+                    Chờ soi Bill <span class="count" id="cnt-pending">0</span>
+                </button>
+                <button type="button" class="filter-tab" data-status="BILL_VERIFIED">
+                    Đã soi Bill <span class="count" id="cnt-verified">0</span>
+                </button>
+                <button type="button" class="filter-tab" data-status="APPROVED">
+                    Đã cấp vé <span class="count" id="cnt-approved">0</span>
+                </button>
+            </div>
+
+            <!-- Giữ select ẩn để tương thích hoàn toàn với logic lọc -->
+            <select id="status-filter" style="display: none;">
+                <option value="ALL">ALL</option>
+                <option value="PENDING">PENDING</option>
+                <option value="BILL_VERIFIED">BILL_VERIFIED</option>
+                <option value="APPROVED">APPROVED</option>
+            </select>
+
+            <div class="btn-group">
+                <button class="btn-solid" id="btn-verify-payos-batch" title="Kiểm tra tự động các đơn chờ qua PayOS">⚡ Đối soát PayOS</button>
+                <button class="btn-outline" id="btn-refresh">↻ Làm mới</button>
+                <button class="btn-outline" id="btn-export-csv">↓ Xuất CSV</button>
+                <button class="btn-outline" id="btn-export-json">↓ JSON</button>
+            </div>
+        </div>
+
+        <!-- BẢNG DỮ LIỆU TỐI GIẢN DỄ TRA CỨU -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 46px;">#</th>
+                        <th>Khách hàng & Mã đơn</th>
+                        <th>Liên hệ (SĐT / Email)</th>
+                        <th>Số vé & Thanh toán</th>
+                        <th>Biên lai</th>
+                        <th>Mã vé bảo mật</th>
+                        <th>Trạng thái</th>
+                        <th style="text-align: right;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-tbody">
+                    <tr>
+                        <td colspan="8" class="status-msg">Đang tải dữ liệu đơn hàng...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MODAL XEM ẢNH BIÊN LAI (LIGHTBOX) -->
+    <div id="bill-lightbox-modal" class="modal-backdrop">
+        <div class="lightbox-card">
+            <div class="lightbox-header">
+                <div>
+                    <h3 id="lightbox-title" style="font-size: 15px; font-weight: 700;">Biên lai chuyển khoản</h3>
+                    <p id="lightbox-subtitle" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">...
+                    </p>
+                </div>
+                <button type="button" id="btn-close-lightbox" class="btn-outline"
+                    style="padding: 5px 10px; font-size: 12px;">✕ Đóng (Esc)</button>
+            </div>
+            <div class="lightbox-body">
+                <img id="lightbox-img" class="lightbox-img" src="" alt="Ảnh Biên Lai" />
+            </div>
+            <div class="lightbox-toolbar">
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-outline" id="btn-rotate-bill">↻ Xoay 90°</button>
+                    <button type="button" class="btn-outline" id="btn-zoom-bill">🔍 Phóng to 1.6x</button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-outline" id="btn-open-bill-tab">↗ Mở tab mới</button>
+                    <button type="button" class="btn-solid" id="btn-download-bill">↓ Tải ảnh về</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL XEM VÉ QR & GỬI EMAIL VÉ -->
+    <div id="ticket-modal" class="modal-backdrop">
+        <div class="modal-card">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                <h3 style="font-size: 16px; font-weight: 700;">Chi tiết Vé điện tử & Gửi Email</h3>
+                <button type="button" id="btn-close-modal" class="btn-outline"
+                    style="padding: 5px 10px; font-size: 12px;">✕ Đóng</button>
+            </div>
+            <div id="modal-status-banner"
+                style="display: none; padding: 10px 12px; border-radius: var(--radius-md); font-size: 12.5px; margin-bottom: 12px; border: 1px solid var(--border);">
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;">
+                <button type="button" id="btn-modal-send-email" class="btn-solid">Gửi Email Vé Tự Động</button>
+                <button type="button" id="btn-modal-copy-html" class="btn-outline">Copy Nội Dung Email</button>
+                <a id="btn-modal-open-gmail" href="#" target="_blank" rel="noopener noreferrer"
+                    class="btn-outline btn-link">Mở Gmail Soạn Sẵn</a>
+            </div>
+            <div id="modal-preview-container"
+                style="background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; max-height: 55vh; overflow-y: auto;">
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST THÔNG BÁO COPY -->
+    <div id="copy-toast" class="toast">Đã sao chép vào bộ nhớ tạm</div>
+
+    <script type="module">
+        import { EVENT_CONFIG, FIREBASE_CONFIG, EMAIL_CONFIG } from "./js/config.js";
+        import {
+            db,
+            auth,
+            collection,
+            getDocs,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            escapeHtml
+        } from "./js/firebase-core.js";
+        import {
+            checkServerRole,
+            claimSuperAdminBootstrap,
+            saveSuperAdminEmailsList,
+            loadServerSecretConfig,
+            saveServerSecretConfig,
+            loadAllOrderTicketsForSuperAdmin,
+            verifyOrderBillByReviewer,
+            approveAndIssueTickets,
+            revokeOrderTickets,
+            buildTicketEmailHtml,
+            sendTicketEmail,
+            verifyPayosOrderPayment
+        } from "./js/ticket-service.js";
+
+        document.getElementById('login-event-name').textContent = EVENT_CONFIG.eventName;
+        document.getElementById('dashboard-title').textContent = `${EVENT_CONFIG.eventName} — Quản Trị Đơn Vé`;
+
+        const loginGate = document.getElementById('admin-login-gate');
+        const dashboardContainer = document.getElementById('admin-dashboard-container');
+        const loginForm = document.getElementById('admin-login-form');
+        const loginError = document.getElementById('admin-login-error');
+        const adminUserBadge = document.getElementById('admin-user-badge');
+        const roleBadge = document.getElementById('role-badge');
+        const btnLogout = document.getElementById('btn-logout');
+        const btnToggleSettings = document.getElementById('btn-toggle-settings');
+
+        const bootstrapBanner = document.getElementById('bootstrap-banner');
+        const btnClaimSuper = document.getElementById('btn-claim-super');
+        const superSecurityPanel = document.getElementById('super-security-panel');
+        const superBatchBar = document.getElementById('super-batch-bar');
+        const securitySaveStatus = document.getElementById('security-save-status');
+
+        const hmacSecretInput = document.getElementById('hmac-secret-input');
+        const webhookUrlInput = document.getElementById('webhook-url-input');
+        const superEmailsInput = document.getElementById('super-emails-input');
+        const btnToggleSecret = document.getElementById('btn-toggle-secret');
+        const btnSaveSecurity = document.getElementById('btn-save-security');
+
+        const btnBatchVerified = document.getElementById('btn-batch-verified');
+        const btnBatchStop = document.getElementById('btn-batch-stop');
+        const batchProgressText = document.getElementById('batch-progress-text');
+        const verifiedCountLabel = document.getElementById('verified-count-label');
+
+        const ticketModal = document.getElementById('ticket-modal');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+        const btnModalSendEmail = document.getElementById('btn-modal-send-email');
+        const btnModalCopyHtml = document.getElementById('btn-modal-copy-html');
+        const btnModalOpenGmail = document.getElementById('btn-modal-open-gmail');
+        const modalPreviewContainer = document.getElementById('modal-preview-container');
+        const modalStatusBanner = document.getElementById('modal-status-banner');
+
+        const billLightboxModal = document.getElementById('bill-lightbox-modal');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxTitle = document.getElementById('lightbox-title');
+        const lightboxSubtitle = document.getElementById('lightbox-subtitle');
+        const btnCloseLightbox = document.getElementById('btn-close-lightbox');
+        const btnRotateBill = document.getElementById('btn-rotate-bill');
+        const btnZoomBill = document.getElementById('btn-zoom-bill');
+        const btnOpenBillTab = document.getElementById('btn-open-bill-tab');
+        const btnDownloadBill = document.getElementById('btn-download-bill');
+
+        const tbody = document.getElementById('orders-tbody');
+        const searchInput = document.getElementById('search-input');
+        const btnClearSearch = document.getElementById('btn-clear-search');
+        const statusFilter = document.getElementById('status-filter');
+        const quickFilterTabs = document.getElementById('quick-filter-tabs');
+        const btnRefresh = document.getElementById('btn-refresh');
+        const btnExportCsv = document.getElementById('btn-export-csv');
+        const btnExportJson = document.getElementById('btn-export-json');
+        const copyToast = document.getElementById('copy-toast');
+
+        let currentUser = null;
+        let isSuperAdmin = false;
+        let realTicketVaultMap = {};
+        let allOrders = [];
+        let filteredOrders = [];
+        let currentModalOrder = null;
+        let currentLightboxOrder = null;
+        let currentBillRotation = 0;
+        let currentBillZoom = 1;
+        let stopBatchFlag = false;
+
+        let toastTimer = null;
+        function showCopyToast(text) {
+            copyToast.textContent = `✓ Đã sao chép: ${text}`;
+            copyToast.classList.add('show');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => copyToast.classList.remove('show'), 2000);
+        }
+
+        function formatCurrency(val) {
+            return Number(val || 0).toLocaleString('vi-VN') + ' ₫';
+        }
+
+        function formatDate(ts) {
+            if (!ts) return '—';
+            const d = ts.toDate ? ts.toDate() : new Date(ts);
+            return d.toLocaleString('vi-VN', {
+                hour: '2-digit', minute: '2-digit',
+                day: '2-digit', month: '2-digit', year: 'numeric'
+            });
+        }
+
+        // Phím tắt "/" để focus ngay vào ô tìm kiếm, "Esc" để đóng modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== searchInput && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            } else if (e.key === 'Escape') {
+                billLightboxModal.style.display = 'none';
+                ticketModal.style.display = 'none';
+            }
+        });
+
+        // Đóng/mở gọn bảng cấu hình bảo mật của Super Admin
+        btnToggleSettings.addEventListener('click', () => {
+            if (!isSuperAdmin) return;
+            const isHidden = superSecurityPanel.style.display === 'none';
+            superSecurityPanel.style.display = isHidden ? 'block' : 'none';
+        });
+
+        btnToggleSecret.addEventListener('click', () => {
+            const isPwd = hmacSecretInput.type === 'password';
+            hmacSecretInput.type = isPwd ? 'text' : 'password';
+            btnToggleSecret.textContent = isPwd ? 'Ẩn khóa' : 'Hiện khóa';
+        });
+
+        btnSaveSecurity.addEventListener('click', async () => {
+            if (!isSuperAdmin) return;
+            btnSaveSecurity.disabled = true;
+            btnSaveSecurity.textContent = 'Đang lưu...';
+            try {
+                await saveServerSecretConfig(hmacSecretInput.value.trim(), webhookUrlInput.value.trim());
+                if (superEmailsInput) {
+                    const updatedEmails = await saveSuperAdminEmailsList(superEmailsInput.value);
+                    superEmailsInput.value = updatedEmails.join(', ');
+                }
+                securitySaveStatus.textContent = '✓ Đã lưu lên Server!';
+                setTimeout(() => { securitySaveStatus.textContent = ''; }, 3000);
+            } catch (err) {
+                alert('Không thể lưu cấu hình: ' + err.message);
+            } finally {
+                btnSaveSecurity.disabled = false;
+                btnSaveSecurity.textContent = 'Lưu cấu hình';
+            }
+        });
+
+        btnClaimSuper.addEventListener('click', async () => {
+            if (!currentUser) return;
+            btnClaimSuper.disabled = true;
+            btnClaimSuper.textContent = 'Đang khóa quyền...';
+            try {
+                await claimSuperAdminBootstrap(currentUser);
+                await setupRoleAndLoadData(currentUser);
+            } catch (err) {
+                alert('Lỗi khởi tạo Super Admin: ' + err.message);
+                btnClaimSuper.disabled = false;
+                btnClaimSuper.textContent = 'Khóa Tài Khoản Này Làm Super Admin';
+            }
+        });
+
+        // Lightbox Xem Ảnh Biên Lai
+        function updateLightboxTransform() {
+            if (lightboxImg) {
+                lightboxImg.style.transform = `rotate(${currentBillRotation}deg) scale(${currentBillZoom})`;
+            }
+        }
+
+        function dataUriToBlob(dataUri) {
+            try {
+                const arr = dataUri.split(',');
+                const mimeMatch = arr[0].match(/:(.*?);/);
+                const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) u8arr[n] = bstr.charCodeAt(n);
+                return new Blob([u8arr], { type: mime });
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function openBillLightbox(order) {
+            if (!order || !order.imageUrl) return;
+            currentLightboxOrder = order;
+            currentBillRotation = 0;
+            currentBillZoom = 1;
+            btnZoomBill.textContent = '🔍 Phóng to 1.6x';
+            updateLightboxTransform();
+
+            lightboxImg.src = order.imageUrl;
+            lightboxTitle.textContent = `Biên lai: ${order.name || 'Khách hàng'} — ${formatCurrency(order.totalAmount)}`;
+            lightboxSubtitle.textContent = `SĐT: ${order.phone || '---'} • Số vé: ${order.quantity} • Nội dung CK: ${order.transferMemo || '---'}`;
+            billLightboxModal.style.display = 'flex';
+        }
+
+        btnCloseLightbox.addEventListener('click', () => { billLightboxModal.style.display = 'none'; });
+        billLightboxModal.addEventListener('click', (e) => { if (e.target === billLightboxModal) billLightboxModal.style.display = 'none'; });
+
+        btnRotateBill.addEventListener('click', () => {
+            currentBillRotation = (currentBillRotation + 90) % 360;
+            updateLightboxTransform();
+        });
+
+        btnZoomBill.addEventListener('click', () => {
+            currentBillZoom = currentBillZoom === 1 ? 1.6 : 1;
+            btnZoomBill.textContent = currentBillZoom === 1 ? '🔍 Phóng to 1.6x' : '🔍 Thu nhỏ 1.0x';
+            updateLightboxTransform();
+        });
+
+        btnOpenBillTab.addEventListener('click', () => {
+            if (!currentLightboxOrder || !currentLightboxOrder.imageUrl) return;
+            const url = currentLightboxOrder.imageUrl;
+            if (url.startsWith('data:image/')) {
+                const blob = dataUriToBlob(url);
+                if (blob) window.open(URL.createObjectURL(blob), '_blank');
+            } else {
+                window.open(url, '_blank');
+            }
+        });
+
+        btnDownloadBill.addEventListener('click', () => {
+            if (!currentLightboxOrder || !currentLightboxOrder.imageUrl) return;
+            const url = currentLightboxOrder.imageUrl;
+            const safeName = (currentLightboxOrder.name || 'Khach').replace(/[^a-zA-Z0-9]/g, '_');
+            const fileName = `Bill_${safeName}_${currentLightboxOrder.id}.jpg`;
+
+            if (url.startsWith('data:image/')) {
+                const blob = dataUriToBlob(url);
+                if (blob) {
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = fileName;
+                    a.click();
+                    URL.revokeObjectURL(blobUrl);
+                }
+            } else {
+                const a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                a.download = fileName;
+                a.click();
+            }
+        });
+
+        async function setupRoleAndLoadData(user) {
+            currentUser = user;
+            const roleInfo = await checkServerRole(user);
+            isSuperAdmin = roleInfo.isSuperAdmin;
+
+            bootstrapBanner.style.display = roleInfo.canClaimSuperAdmin ? 'flex' : 'none';
+
+            if (isSuperAdmin) {
+                roleBadge.className = 'role-pill role-super';
+                roleBadge.textContent = 'Super Admin';
+                btnToggleSettings.style.display = 'inline-flex';
+                superSecurityPanel.style.display = 'none'; // Mặc định thu gọn để bảng đơn hàng thoáng nhất
+                superBatchBar.style.display = 'flex';
+
+                if (superEmailsInput && Array.isArray(roleInfo.superAdminEmails)) {
+                    superEmailsInput.value = roleInfo.superAdminEmails.join(', ');
+                }
+
+                try {
+                    const secCfg = await loadServerSecretConfig();
+                    hmacSecretInput.value = secCfg.hmacSecret || '';
+                    webhookUrlInput.value = secCfg.webhookUrls || EMAIL_CONFIG.appsScriptWebhookUrl || '';
+                } catch (e) {
+                    console.warn('Chưa đọc được system_secrets/config:', e);
+                }
+            } else {
+                roleBadge.className = 'role-pill role-reviewer';
+                roleBadge.textContent = 'Nhân viên đối soát Bill';
+                btnToggleSettings.style.display = 'none';
+                superSecurityPanel.style.display = 'none';
+                superBatchBar.style.display = 'none';
+                hmacSecretInput.value = '';
+                webhookUrlInput.value = '';
+                if (superEmailsInput) superEmailsInput.value = '';
+            }
+
+            await loadOrders();
+        }
+
+        async function loadOrders() {
+            tbody.innerHTML = `<tr><td colspan="8" class="status-msg">Đang đồng bộ dữ liệu từ Firestore...</td></tr>`;
+            try {
+                realTicketVaultMap = {};
+                if (isSuperAdmin) {
+                    try {
+                        realTicketVaultMap = await loadAllOrderTicketsForSuperAdmin();
+                    } catch (e) {
+                        console.warn('Không thể tải order_tickets:', e);
+                    }
+                }
+
+                const snap = await getDocs(collection(db, FIREBASE_CONFIG.ordersCollection));
+                allOrders = [];
+                snap.forEach((docSnap) => {
+                    const d = docSnap.data();
+                    const qty = Number(d.quantity) || 0;
+                    const amount = Number(d.totalAmount) || (qty * EVENT_CONFIG.ticketPrice);
+                    const rawTime = (d.createdAt && d.createdAt.toMillis) ? d.createdAt.toMillis() : ((d.timestamp && d.timestamp.toMillis) ? d.timestamp.toMillis() : 0);
+
+                    const realCodes = isSuperAdmin
+                        ? (realTicketVaultMap[docSnap.id] || (Array.isArray(d.ticketCodes) ? d.ticketCodes : []))
+                        : [];
+
+                    const rawImg = d.billImageBase64 || d.billImage || d.imageUrl || d.image || d.bill || d.billUrl || d.receiptUrl || '';
+                    let validImg = '';
+                    if (rawImg && rawImg.startsWith('data:image/')) {
+                        validImg = rawImg;
+                    } else if (rawImg && rawImg.startsWith('http') && !rawImg.includes('local_compressed')) {
+                        validImg = rawImg;
+                    } else if (d.billImageBase64 && d.billImageBase64.startsWith('data:image/')) {
+                        validImg = d.billImageBase64;
+                    } else if (rawImg) {
+                        validImg = rawImg;
+                    }
+
+                    allOrders.push({
+                        id: docSnap.id,
+                        name: d.customerName || d.name || '',
+                        phone: d.phone || '',
+                        email: d.email || '',
+                        quantity: qty,
+                        voucherCode: d.voucherCode || '',
+                        discountAmount: Number(d.discountAmount) || 0,
+                        totalAmount: amount,
+                        transferMemo: d.transferMemo || '',
+                        payosOrderCode: d.payosOrderCode ? String(d.payosOrderCode) : '',
+                        paymentMethod: d.paymentMethod || '',
+                        imageUrl: validImg,
+                        status: (d.status || 'pending').toUpperCase(),
+                        verifiedBy: d.verifiedBy || '',
+                        maskedTickets: Array.isArray(d.maskedTickets) ? d.maskedTickets : [],
+                        realTicketCodes: realCodes,
+                        emailSent: Boolean(d.emailSent),
+                        createdAtText: formatDate(d.createdAt || d.timestamp),
+                        rawTime: rawTime
+                    });
+                });
+
+                allOrders.sort((a, b) => b.rawTime - a.rawTime);
+                applyFilters();
+            } catch (error) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="status-msg" style="color: #dc2626;">
+                            Không thể đọc dữ liệu: <strong>${escapeHtml(error.message)}</strong>
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        function updateStats(list) {
+            const totalOrders = list.length;
+            const totalTickets = list.reduce((sum, item) => sum + item.quantity, 0);
+            const totalRevenue = list.reduce((sum, item) => sum + item.totalAmount, 0);
+
+            const allPending = allOrders.filter(i => i.status === 'PENDING').length;
+            const allVerified = allOrders.filter(i => i.status === 'BILL_VERIFIED').length;
+            const allApproved = allOrders.filter(i => i.status === 'APPROVED').length;
+
+            document.getElementById('stat-total-orders').textContent = totalOrders;
+            document.getElementById('stat-total-tickets').textContent = totalTickets + ' vé';
+            document.getElementById('stat-total-revenue').textContent = formatCurrency(totalRevenue);
+            document.getElementById('stat-status-ratio').textContent = `${allPending} / ${allVerified} / ${allApproved}`;
+
+            document.getElementById('cnt-all').textContent = allOrders.length;
+            document.getElementById('cnt-pending').textContent = allPending;
+            document.getElementById('cnt-verified').textContent = allVerified;
+            document.getElementById('cnt-approved').textContent = allApproved;
+
+            if (verifiedCountLabel) verifiedCountLabel.textContent = allVerified;
+        }
+
+        function applyFilters() {
+            const keyword = searchInput.value.trim().toLowerCase();
+            btnClearSearch.style.display = keyword ? 'inline-block' : 'none';
+            const st = statusFilter.value;
+
+            filteredOrders = allOrders.filter(item => {
+                const matchStatus = (st === 'ALL') || (item.status === st);
+                const ticketsStr = (item.realTicketCodes || []).join(' ').toLowerCase();
+                const matchKeyword = !keyword ||
+                    item.name.toLowerCase().includes(keyword) ||
+                    item.phone.toLowerCase().includes(keyword) ||
+                    item.email.toLowerCase().includes(keyword) ||
+                    item.transferMemo.toLowerCase().includes(keyword) ||
+                    (item.payosOrderCode && item.payosOrderCode.toLowerCase().includes(keyword)) ||
+                    ticketsStr.includes(keyword) ||
+                    item.id.toLowerCase().includes(keyword);
+                return matchStatus && matchKeyword;
+            });
+
+            updateStats(filteredOrders);
+            renderTable(filteredOrders);
+        }
+
+        // Sự kiện bấm Tab lọc nhanh 1 chạm
+        quickFilterTabs.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                quickFilterTabs.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                statusFilter.value = tab.getAttribute('data-status');
+                applyFilters();
+            });
+        });
+
+        btnClearSearch.addEventListener('click', () => {
+            searchInput.value = '';
+            searchInput.focus();
+            applyFilters();
+        });
+
+        function openTicketModal(order) {
+            if (!isSuperAdmin) return;
+            currentModalOrder = order;
+            const codes = Array.isArray(order.realTicketCodes) ? order.realTicketCodes : [];
+            const emailHtml = buildTicketEmailHtml(order, codes);
+            modalPreviewContainer.innerHTML = emailHtml;
+            modalStatusBanner.style.display = 'none';
+
+            const subject = `[${EVENT_CONFIG.eventName}] Vé Điện Tử Chính Thức (${codes.length} vé) - Đơn #${order.id}`;
+            const plainTextBody = [
+                `Xin chào ${order.name},`,
+                `Đơn đặt vé #${order.id} của bạn tại sự kiện ${EVENT_CONFIG.eventName} đã được xác nhận thanh toán!`,
+                ``,
+                `DANH SÁCH MÃ VÉ CHECK-IN CỦA BẠN (${codes.length} vé):`,
+                ...codes.map((c, i) => `• Vé ${i + 1}: ${c}`)
+            ].join('\n');
+
+            btnModalOpenGmail.href = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(order.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainTextBody)}`;
+            ticketModal.style.display = 'flex';
+        }
+
+        btnCloseModal.addEventListener('click', () => { ticketModal.style.display = 'none'; });
+        ticketModal.addEventListener('click', (e) => { if (e.target === ticketModal) ticketModal.style.display = 'none'; });
+
+        btnModalSendEmail.addEventListener('click', async () => {
+            if (!currentModalOrder || !isSuperAdmin) return;
+            const codes = currentModalOrder.realTicketCodes || [];
+            const webhookUrls = webhookUrlInput.value.trim();
+            btnModalSendEmail.disabled = true;
+            btnModalSendEmail.textContent = 'Đang gửi...';
+            try {
+                const res = await sendTicketEmail(currentModalOrder, codes, webhookUrls);
+                modalStatusBanner.style.display = 'block';
+                if (res.success) {
+                    currentModalOrder.emailSent = true;
+                    modalStatusBanner.style.background = '#f4f4f5';
+                    modalStatusBanner.style.color = '#09090b';
+                    const quotaNote = typeof res.remainingQuota === 'number' ? ` (Webhook #${res.webhookIndex}, còn ${res.remainingQuota} lượt hôm nay)` : '';
+                    modalStatusBanner.textContent = `✓ Đã gửi email vé tới ${currentModalOrder.email}${quotaNote}`;
+                    applyFilters();
+                } else {
+                    modalStatusBanner.textContent = `⚠️ ${res.reason}`;
+                }
+            } catch (err) {
+                modalStatusBanner.style.display = 'block';
+                modalStatusBanner.textContent = `Lỗi gửi email: ${err.message}`;
+            } finally {
+                btnModalSendEmail.disabled = false;
+                btnModalSendEmail.textContent = 'Gửi Email Vé Tự Động';
+            }
+        });
+
+        btnModalCopyHtml.addEventListener('click', async () => {
+            if (!currentModalOrder || !isSuperAdmin) return;
+            try {
+                const html = buildTicketEmailHtml(currentModalOrder, currentModalOrder.realTicketCodes || []);
+                const blobHtml = new Blob([html], { type: 'text/html' });
+                const blobText = new Blob([modalPreviewContainer.innerText], { type: 'text/plain' });
+                if (window.ClipboardItem) {
+                    await navigator.clipboard.write([new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })]);
+                } else {
+                    await navigator.clipboard.writeText(html);
+                }
+                showCopyToast('Nội dung Email HTML');
+            } catch (e) {
+                alert('Không thể copy: ' + e.message);
+            }
+        });
+
+        btnBatchStop.addEventListener('click', () => {
+            stopBatchFlag = true;
+            btnBatchStop.textContent = 'Đang dừng...';
+        });
+
+        btnBatchVerified.addEventListener('click', async () => {
+            if (!isSuperAdmin) return;
+            const queue = allOrders.filter(o => o.status === 'BILL_VERIFIED' || (o.status === 'APPROVED' && !o.emailSent));
+            if (queue.length === 0) {
+                alert('Không có đơn nào ở trạng thái "Đã soi Bill" hoặc chưa gửi mail.');
+                return;
+            }
+
+            const secretKey = hmacSecretInput.value.trim();
+            const webhookUrls = webhookUrlInput.value.trim();
+            if (!secretKey) {
+                superSecurityPanel.style.display = 'block';
+                hmacSecretInput.focus();
+                alert('Vui lòng kiểm tra Khóa Bí Mật HMAC trong mục Cấu hình Bảo mật trước khi cấp vé.');
+                return;
+            }
+
+            if (!confirm(`Xác nhận cấp mã vé & gửi Email tự động cho ${queue.length} đơn hàng?`)) return;
+
+            stopBatchFlag = false;
+            btnBatchVerified.disabled = true;
+            btnBatchStop.style.display = 'inline-flex';
+            btnBatchStop.textContent = 'Dừng hàng đợi';
+
+            let successCount = 0;
+            for (let i = 0; i < queue.length; i++) {
+                if (stopBatchFlag) break;
+                const order = queue[i];
+                batchProgressText.innerHTML = `Đang xử lý <strong>${i + 1}/${queue.length}</strong> (${escapeHtml(order.name)})...`;
+
+                try {
+                    const issuedCodes = await approveAndIssueTickets(order, secretKey, order.realTicketCodes);
+                    order.status = 'APPROVED';
+                    order.realTicketCodes = issuedCodes;
+                    realTicketVaultMap[order.id] = issuedCodes;
+
+                    if (webhookUrls || EMAIL_CONFIG.provider !== 'apps_script') {
+                        const mailRes = await sendTicketEmail(order, issuedCodes, webhookUrls);
+                        if (mailRes.success) order.emailSent = true;
+                    }
+                    successCount++;
+                    applyFilters();
+                } catch (err) {
+                    console.error('Lỗi xử lý đơn:', order.id, err);
+                }
+
+                await new Promise(r => setTimeout(r, 1200));
+            }
+
+            btnBatchVerified.disabled = false;
+            btnBatchStop.style.display = 'none';
+            batchProgressText.innerHTML = `✓ Đã hoàn tất xử lý <strong>${successCount}/${queue.length}</strong> đơn hàng.`;
+        });
+
+        function renderTable(list) {
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="status-msg">Không tìm thấy đơn đặt vé nào khớp với điều kiện tra cứu.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map((item, idx) => {
+                const st = item.status;
+                let badgeHtml = `<span class="badge badge-pending">Chờ soi Bill</span>`;
+                if (st === 'BILL_VERIFIED') {
+                    badgeHtml = `<span class="badge badge-verified">Đã soi Bill</span>` +
+                        (item.verifiedBy ? `<div class="sub-meta">bởi ${escapeHtml(item.verifiedBy)}</div>` : '');
+                } else if (st === 'APPROVED') {
+                    badgeHtml = `<span class="badge badge-approved">✓ Đã cấp vé</span>`;
+                }
+
+                let billCellHtml = '<span class="sub-meta">—</span>';
+                if (item.imageUrl) {
+                    const isLocalDummy = item.imageUrl.includes('local_compressed');
+                    if (isLocalDummy) {
+                        billCellHtml = `<span class="sub-meta" style="color: #dc2626;">Lỗi ảnh</span>`;
+                    } else {
+                        billCellHtml = `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <img src="${item.imageUrl}" class="bill-thumb" data-bill-id="${escapeHtml(item.id)}" title="Bấm để xem ảnh biên lai" />
+                                <button type="button" class="btn-outline btn-table-action" data-bill-id="${escapeHtml(item.id)}">Xem Bill</button>
+                            </div>
+                        `;
+                    }
+                }
+
+                let ticketColumnHtml = `<span class="sub-meta">Chưa phát hành</span>`;
+                if (st === 'APPROVED') {
+                    if (isSuperAdmin && item.realTicketCodes && item.realTicketCodes.length > 0) {
+                        ticketColumnHtml = item.realTicketCodes.map(c => `<span class="ticket-code-pill copyable" data-copy="${escapeHtml(c)}" title="Bấm để copy mã vé">${escapeHtml(c)}</span>`).join('') +
+                            (item.emailSent
+                                ? `<div class="sub-meta" style="color: var(--text-primary); font-weight: 500;">✓ Đã gửi email</div>`
+                                : `<div class="sub-meta">Chưa gửi email tự động</div>`);
+                    } else {
+                        const masked = (item.maskedTickets && item.maskedTickets.length > 0)
+                            ? item.maskedTickets
+                            : Array.from({ length: item.quantity }, () => 'HVC-******-****');
+                        ticketColumnHtml = masked.map(m => `<span class="ticket-masked-pill">🔒 ${escapeHtml(m)}</span>`).join('') +
+                            `<div class="sub-meta">Đã ẩn bảo mật</div>`;
+                    }
+                }
+
+                let actionButtonsHtml = '';
+                const payosQuickBtn = (st === 'PENDING' && item.payosOrderCode)
+                    ? `<button type="button" class="btn-outline btn-table-action btn-check-payos" data-payos-id="${escapeHtml(item.id)}" title="Kiểm tra giao dịch PayOS #${escapeHtml(item.payosOrderCode)}">⚡ PayOS</button>`
+                    : '';
+
+                if (isSuperAdmin) {
+                    const isApp = st === 'APPROVED';
+                    const btnLabel = isApp ? 'Hoàn tác' : 'Cấp vé & Gửi mail';
+                    const btnClass = isApp ? 'btn-outline' : 'btn-solid';
+                    const nextSt = isApp ? 'PENDING' : 'APPROVED';
+                    actionButtonsHtml = `
+                        <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                            ${payosQuickBtn}
+                            ${isApp && item.realTicketCodes && item.realTicketCodes.length > 0 ? `<button class="btn-outline btn-table-action btn-view-ticket" data-view-id="${escapeHtml(item.id)}">QR / Mail</button>` : ''}
+                            <button class="${btnClass} btn-table-action action-btn" data-id="${escapeHtml(item.id)}" data-next="${nextSt}">${btnLabel}</button>
+                        </div>
+                    `;
+                } else {
+                    if (st === 'APPROVED') {
+                        actionButtonsHtml = `<span class="sub-meta">Đã khóa</span>`;
+                    } else {
+                        const isVer = st === 'BILL_VERIFIED';
+                        const nextReviewerSt = isVer ? 'PENDING' : 'BILL_VERIFIED';
+                        const reviewerLabel = isVer ? 'Bỏ xác nhận' : '✓ Xác nhận Bill';
+                        const btnClass = isVer ? 'btn-outline' : 'btn-solid';
+                        actionButtonsHtml = `
+                            <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                                ${payosQuickBtn}
+                                <button class="${btnClass} btn-table-action action-btn" data-id="${escapeHtml(item.id)}" data-next="${nextReviewerSt}">${reviewerLabel}</button>
+                            </div>
+                        `;
+                    }
+                }
+
+                return `
+                    <tr>
+                        <td class="mono-num" style="color: var(--text-muted);">${idx + 1}</td>
+                        <td>
+                            <div class="customer-name">${escapeHtml(item.name)}</div>
+                            <div class="sub-meta mono-num">
+                                <span class="copyable" data-copy="${escapeHtml(item.id)}" title="Bấm để copy Mã đơn">#${escapeHtml(item.id.slice(0, 8))}</span>
+                                ${item.payosOrderCode ? `• <span class="copyable" data-copy="${escapeHtml(item.payosOrderCode)}" title="Mã đối soát PayOS">PayOS:${escapeHtml(item.payosOrderCode)}</span>` : ''}
+                                • ${escapeHtml(item.createdAtText)}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="mono-num" style="font-weight: 600;">
+                                <span class="copyable" data-copy="${escapeHtml(item.phone)}" title="Bấm để copy SĐT">${escapeHtml(item.phone)}</span>
+                            </div>
+                            <div class="sub-meta">
+                                <span class="copyable" data-copy="${escapeHtml(item.email)}" title="Bấm để copy Email">${escapeHtml(item.email)}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <span class="mono-num" style="font-weight: 700;">${Number(item.quantity)} vé</span>
+                                • <span class="mono-num" style="font-weight: 700;">${formatCurrency(item.totalAmount)}</span>
+                            </div>
+                            ${item.transferMemo ? `<span class="memo-tag copyable" data-copy="${escapeHtml(item.transferMemo)}" title="Bấm để copy Nội dung CK">${escapeHtml(item.transferMemo)}</span>` : ''}
+                        </td>
+                        <td>${billCellHtml}</td>
+                        <td>${ticketColumnHtml}</td>
+                        <td>${badgeHtml}</td>
+                        <td style="text-align: right;">${actionButtonsHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Sự kiện click 1 chạm để copy SĐT, Email, Mã đơn, Mã vé, Nội dung CK
+            tbody.querySelectorAll('.copyable').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const text = el.getAttribute('data-copy');
+                    if (text) {
+                        navigator.clipboard.writeText(text);
+                        showCopyToast(text);
+                    }
+                });
+            });
+
+            // Sự kiện mở Lightbox xem ảnh Bill
+            tbody.querySelectorAll('.bill-thumb, [data-bill-id]').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const docId = el.getAttribute('data-bill-id');
+                    const target = allOrders.find(o => o.id === docId);
+                    if (target) openBillLightbox(target);
+                });
+            });
+
+            if (isSuperAdmin) {
+                tbody.querySelectorAll('.btn-view-ticket').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const docId = btn.getAttribute('data-view-id');
+                        const target = allOrders.find(o => o.id === docId);
+                        if (target) openTicketModal(target);
+                    });
+                });
+            }
+
+            // Sự kiện kiểm tra giao dịch PayOS cho từng dòng đơn hàng
+            tbody.querySelectorAll('.btn-check-payos').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const docId = btn.getAttribute('data-payos-id');
+                    const target = allOrders.find(o => o.id === docId);
+                    if (!target || !target.payosOrderCode) return;
+
+                    btn.disabled = true;
+                    btn.textContent = 'Đang k.tra...';
+                    const webhookUrls = webhookUrlInput.value.trim() || EMAIL_CONFIG.appsScriptWebhookUrl || '';
+
+                    try {
+                        const res = await verifyPayosOrderPayment(target.payosOrderCode, webhookUrls);
+                        if (res.isPaid) {
+                            await verifyOrderBillByReviewer(target.id, 'BILL_VERIFIED', 'PayOS Auto');
+                            target.status = 'BILL_VERIFIED';
+                            target.verifiedBy = 'PayOS Auto';
+                            showCopyToast(`PayOS xác nhận ĐÃ THANH TOÁN (#${target.payosOrderCode})`);
+                            applyFilters();
+                        } else {
+                            alert(`Trạng thái PayOS cho đơn #${target.payosOrderCode}: ${res.payosStatus || 'CHƯA THANH TOÁN'}`);
+                            btn.disabled = false;
+                            btn.textContent = '⚡ PayOS';
+                        }
+                    } catch (err) {
+                        alert('Lỗi kiểm tra PayOS: ' + err.message);
+                        btn.disabled = false;
+                        btn.textContent = '⚡ PayOS';
+                    }
+                });
+            });
+
+            tbody.querySelectorAll('.action-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const docId = btn.getAttribute('data-id');
+                    const nextStatus = btn.getAttribute('data-next');
+                    const target = allOrders.find(o => o.id === docId);
+                    if (!target) return;
+
+                    btn.disabled = true;
+                    btn.textContent = 'Đang xử lý...';
+
+                    try {
+                        if (isSuperAdmin) {
+                            if (nextStatus === 'APPROVED') {
+                                const secretKey = hmacSecretInput.value.trim();
+                                const webhookUrls = webhookUrlInput.value.trim();
+                                if (!secretKey) {
+                                    superSecurityPanel.style.display = 'block';
+                                    throw new Error('Vui lòng nhập Khóa Bí Mật HMAC trong mục Cấu hình Bảo mật trước khi cấp vé.');
+                                }
+
+                                const issuedCodes = await approveAndIssueTickets(target, secretKey, target.realTicketCodes);
+                                target.status = 'APPROVED';
+                                target.realTicketCodes = issuedCodes;
+                                realTicketVaultMap[target.id] = issuedCodes;
+
+                                if (EMAIL_CONFIG.enabled) {
+                                    try {
+                                        const mailRes = await sendTicketEmail(target, issuedCodes, webhookUrls);
+                                        if (mailRes.success) target.emailSent = true;
+                                    } catch (mailErr) {
+                                        console.warn('Gửi email tự động chưa thành công:', mailErr);
+                                    }
+                                }
+
+                                applyFilters();
+                                openTicketModal(target);
+                            } else {
+                                await revokeOrderTickets(target, target.realTicketCodes);
+                                target.status = 'PENDING';
+                                applyFilters();
+                            }
+                        } else {
+                            const updatedSt = await verifyOrderBillByReviewer(
+                                target.id,
+                                nextStatus,
+                                currentUser ? currentUser.email : 'staff'
+                            );
+                            target.status = updatedSt;
+                            target.verifiedBy = currentUser ? currentUser.email : 'staff';
+                            applyFilters();
+                        }
+                    } catch (err) {
+                        alert('Thao tác thất bại: ' + err.message);
+                        applyFilters();
+                    }
+                });
+            });
+        }
+
+        // Đối soát tự động hàng loạt các đơn đang chờ (PENDING) qua PayOS
+        const btnVerifyPayosBatch = document.getElementById('btn-verify-payos-batch');
+        if (btnVerifyPayosBatch) {
+            btnVerifyPayosBatch.addEventListener('click', async () => {
+                const pendingWithCode = allOrders.filter(o => o.status === 'PENDING' && o.payosOrderCode);
+                if (pendingWithCode.length === 0) {
+                    alert('Hiện không có đơn chờ (PENDING) nào có mã đối soát PayOS.');
+                    return;
+                }
+
+                const webhookUrls = webhookUrlInput.value.trim() || EMAIL_CONFIG.appsScriptWebhookUrl || '';
+                if (!webhookUrls) {
+                    alert('Vui lòng dán Google Apps Script Webhook URL vào mục Cấu hình Bảo mật hoặc trong file js/config.js trước khi đối soát PayOS.');
+                    return;
+                }
+
+                btnVerifyPayosBatch.disabled = true;
+                let paidCount = 0;
+
+                for (let i = 0; i < pendingWithCode.length; i++) {
+                    const order = pendingWithCode[i];
+                    btnVerifyPayosBatch.textContent = `Đang k.tra ${i + 1}/${pendingWithCode.length}...`;
+                    try {
+                        const res = await verifyPayosOrderPayment(order.payosOrderCode, webhookUrls);
+                        if (res.isPaid) {
+                            await verifyOrderBillByReviewer(order.id, 'BILL_VERIFIED', 'PayOS Auto');
+                            order.status = 'BILL_VERIFIED';
+                            order.verifiedBy = 'PayOS Auto';
+                            paidCount++;
+                            applyFilters();
+                        }
+                    } catch (e) {
+                        console.warn('Bỏ qua đơn PayOS chưa khởi tạo:', order.payosOrderCode, e.message);
+                    }
+                }
+
+                btnVerifyPayosBatch.disabled = false;
+                btnVerifyPayosBatch.textContent = '⚡ Đối soát PayOS';
+                alert(`Hoàn tất đối soát PayOS: Đã xác nhận tự động ${paidCount}/${pendingWithCode.length} đơn thanh toán thành công!`);
+            });
+        }
+
+        btnExportCsv.addEventListener('click', () => {
+            if (filteredOrders.length === 0) {
+                alert('Không có dữ liệu để xuất!');
+                return;
+            }
+            const headers = [
+                'Mã Đơn (Document ID)',
+                'Thời gian đặt',
+                'Họ và Tên',
+                'Số điện thoại',
+                'Email',
+                'Số lượng vé',
+                isSuperAdmin ? 'Danh sách Mã Vé (Super Admin)' : 'Mã Vé (Đã ẩn bảo mật)',
+                'Mã giảm giá',
+                'Thành tiền (VNĐ)',
+                'Nội dung chuyển khoản',
+                'Người soi Bill',
+                'Trạng thái'
+            ];
+
+            const escapeCsv = (val) => {
+                let s = String(val ?? '');
+                if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+                return `"${s.replace(/"/g, '""')}"`;
+            };
+
+            const rows = filteredOrders.map(o => [
+                o.id,
+                o.createdAtText,
+                o.name,
+                `'${o.phone}`,
+                o.email,
+                o.quantity,
+                isSuperAdmin ? (o.realTicketCodes || []).join(' | ') : 'PROTECTED_BY_SERVER',
+                o.voucherCode,
+                o.totalAmount,
+                o.transferMemo,
+                o.verifiedBy || '',
+                o.status
+            ].map(escapeCsv).join(','));
+
+            const csvContent = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Danh_Sach_Don_Ve_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        btnExportJson.addEventListener('click', () => {
+            if (filteredOrders.length === 0) {
+                alert('Không có dữ liệu để xuất!');
+                return;
+            }
+            const safeExport = filteredOrders.map(o => ({
+                ...o,
+                realTicketCodes: isSuperAdmin ? o.realTicketCodes : undefined
+            }));
+            const blob = new Blob([JSON.stringify(safeExport, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Danh_Sach_Don_Ve_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        searchInput.addEventListener('input', applyFilters);
+        btnRefresh.addEventListener('click', loadOrders);
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.style.display = 'none';
+            const email = document.getElementById('admin-email').value.trim();
+            const password = document.getElementById('admin-password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (err) {
+                loginError.textContent = 'Sai email hoặc mật khẩu đăng nhập.';
+                loginError.style.display = 'block';
+            }
+        });
+
+        btnLogout.addEventListener('click', async () => {
+            await signOut(auth);
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                loginGate.style.display = 'none';
+                dashboardContainer.style.display = 'block';
+                adminUserBadge.textContent = user.email;
+                await setupRoleAndLoadData(user);
+            } else {
+                loginGate.style.display = 'block';
+                dashboardContainer.style.display = 'none';
+                currentUser = null;
+                isSuperAdmin = false;
+                realTicketVaultMap = {};
+                allOrders = [];
+                filteredOrders = [];
+                tbody.innerHTML = '';
+            }
+        });
+    </script>
+</body>
+
+</html>

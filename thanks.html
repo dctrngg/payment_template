@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biên Nhận Đặt Vé Điện Tử</title>
+    <style>
+        :root {
+            --primary: #0066ff;
+            --accent: #10b981;
+            --dark: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #070b14;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 16px;
+            position: relative;
+            color: #f8fafc;
+        }
+
+        .bg-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 20% 20%, rgba(0, 102, 255, 0.2), transparent 45%),
+                        radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.16), transparent 45%),
+                        #070b14;
+            z-index: 0;
+        }
+
+        .receipt-wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 760px;
+        }
+
+        .thank-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.2);
+            border: 2px solid #10b981;
+            color: #34d399;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 12px;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.35);
+        }
+
+        .thank-header h1 {
+            font-size: 30px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #ffffff, #6ee7b7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .thank-header p {
+            color: #cbd5e1;
+            font-size: 14.5px;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.55;
+        }
+
+        .ticket-card {
+            background: #ffffff;
+            color: var(--dark);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            margin-bottom: 22px;
+        }
+
+        .ticket-top-banner {
+            background: linear-gradient(135deg, #0b132b, #1c2541, #00509d);
+            color: #ffffff;
+            padding: 22px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .ticket-top-banner h2 {
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+        }
+
+        .ticket-top-banner span.sub {
+            display: block;
+            font-size: 12.5px;
+            color: #93c5fd;
+            margin-top: 2px;
+        }
+
+        .status-pill {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 700;
+            background: rgba(245, 158, 11, 0.2);
+            color: #fde68a;
+            border: 1px solid rgba(251, 191, 36, 0.45);
+        }
+
+        .ticket-body {
+            padding: 28px;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-item.full {
+            grid-column: span 2;
+        }
+
+        .info-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        .info-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+            word-break: break-word;
+        }
+
+        .order-id-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px dashed #94a3b8;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            color: #0066ff;
+            font-weight: 700;
+        }
+
+        .btn-copy-id {
+            background: #0066ff;
+            color: #fff;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .ticket-qr-side {
+            border-left: 2px dashed #cbd5e1;
+            padding-left: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .ticket-qr-side img {
+            width: 145px;
+            height: 145px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 6px;
+            background: #fff;
+            margin-bottom: 8px;
+        }
+
+        .ticket-qr-side span {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .ticket-footer-quote {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 16px 28px;
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.55;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn-action {
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0066ff, #00c6ff);
+            color: #ffffff;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.24);
+        }
+
+        .toast-copy {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: #fff;
+            padding: 9px 18px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+        }
+
+        .toast-copy.show { opacity: 1; }
+
+        @media screen and (max-width: 680px) {
+            .ticket-body { grid-template-columns: 1fr; }
+            .ticket-qr-side { border-left: none; border-top: 2px dashed #cbd5e1; padding-left: 0; padding-top: 20px; }
+        }
+
+        @media print {
+            body { background: #fff; color: #000; padding: 0; }
+            .bg-overlay, .action-bar, .btn-copy-id { display: none !important; }
+            .ticket-card { box-shadow: none; border: 1px solid #ccc; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-overlay"></div>
+
+    <div class="receipt-wrapper">
+        <div class="thank-header">
+            <div class="success-icon">✓</div>
+            <h1>Cảm Ơn Bạn Đã Đặt Vé!</h1>
+            <p>Biên nhận đặt vé điện tử cho sự kiện <strong id="cfg-event-title">Concert</strong> của bạn đã được khởi tạo:</p>
+        </div>
+
+        <div class="ticket-card">
+            <div class="ticket-top-banner">
+                <div>
+                    <h2 id="cfg-banner-title">CONCERT E-TICKET</h2>
+                    <span class="sub">Biên Nhận Đặt Vé Điện Tử (Digital Order Receipt)</span>
+                </div>
+                <span class="status-pill" id="receipt-status-pill">⏳ Đang chờ xác nhận TT</span>
+            </div>
+
+            <div class="ticket-body">
+                <div class="info-grid">
+                    <div class="info-item full">
+                        <span class="info-label">Mã Đơn Đặt Vé (Order ID)</span>
+                        <div>
+                            <span class="order-id-box">
+                                <span id="orderIdText">ORDER-ID</span>
+                                <button type="button" class="btn-copy-id" id="btnCopyOrderId">Copy</button>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Họ và Tên</span>
+                        <span class="info-value" id="customerName">---</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Số điện thoại</span>
+                        <span class="info-value" id="customerPhone">---</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Email nhận vé</span>
+                        <span class="info-value" id="customerEmail">---</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Thời gian ghi nhận</span>
+                        <span class="info-value" id="orderTime">---</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Số lượng vé</span>
+                        <span class="info-value" id="ticketQuantity" style="color: #0066ff;">1 vé</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label">Tổng thanh toán</span>
+                        <span class="info-value" id="totalPaid" style="color: #059669;">---</span>
+                    </div>
+                </div>
+
+                <div class="ticket-qr-side">
+                    <img id="receipt-qr" src="" alt="QR Mã Đơn Hàng" />
+                    <span>Quét hoặc dùng Mã Đơn để tra cứu trạng thái duyệt vé</span>
+                </div>
+            </div>
+
+            <div class="ticket-footer-quote" id="cfg-quote"></div>
+        </div>
+
+        <div class="action-bar">
+            <button type="button" class="btn-action btn-primary" onclick="window.print()">
+                🖨 Lưu / In Biên Nhận (PDF)
+            </button>
+            <a href="check-order.html" id="btnCheckStatus" class="btn-action btn-secondary">
+                🔍 Kiểm Tra Trạng Thái Đơn Vé
+            </a>
+            <a href="index.html" class="btn-action btn-secondary">
+                🎫 Đặt Thêm Vé Khác
+            </a>
+        </div>
+    </div>
+
+    <div id="toast-copy" class="toast-copy">✓ Đã sao chép Mã Đơn Hàng!</div>
+
+    <script type="module">
+        import { EVENT_CONFIG, EMAIL_CONFIG } from "./js/config.js";
+        import { verifyPayosOrderPayment } from "./js/ticket-service.js";
+
+        document.title = `Biên Nhận Đặt Vé - ${EVENT_CONFIG.eventName}`;
+        document.getElementById('cfg-event-title').textContent = EVENT_CONFIG.eventName;
+        document.getElementById('cfg-banner-title').textContent = EVENT_CONFIG.eventName.toUpperCase();
+        document.getElementById('cfg-quote').textContent = `"${EVENT_CONFIG.thankYouQuote}"`;
+
+        const params = new URLSearchParams(window.location.search);
+        const orderId = params.get('orderId') || 'ORD-' + Date.now().toString().slice(-6);
+        const orderCode = params.get('orderCode') || '';
+        const customer = params.get('customer') || 'Khách hàng';
+        const email = params.get('email') || '---';
+        const phone = params.get('phone') || '---';
+        const quantity = parseInt(params.get('quantity') || '1', 10);
+        const total = parseInt(params.get('total') || String(quantity * EVENT_CONFIG.ticketPrice), 10);
+
+        document.getElementById('orderIdText').textContent = orderId;
+        document.getElementById('customerName').textContent = customer;
+        document.getElementById('customerEmail').textContent = email;
+        document.getElementById('customerPhone').textContent = phone;
+        document.getElementById('ticketQuantity').textContent = `${quantity} vé`;
+        document.getElementById('totalPaid').textContent = `${total.toLocaleString('vi-VN')} VNĐ`;
+        document.getElementById('orderTime').textContent = new Date().toLocaleString('vi-VN');
+
+        document.getElementById('receipt-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(orderId)}`;
+        document.getElementById('btnCheckStatus').href = `check-order.html?code=${encodeURIComponent(orderId)}`;
+
+        document.getElementById('btnCopyOrderId').addEventListener('click', () => {
+            navigator.clipboard.writeText(orderId);
+            const toast = document.getElementById('toast-copy');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2200);
+        });
+
+        // Tự động kiểm tra trạng thái thanh toán từ PayOS nếu có orderCode & Webhook URL
+        const statusPill = document.getElementById('receipt-status-pill');
+        if (orderCode && EMAIL_CONFIG.appsScriptWebhookUrl && statusPill) {
+            statusPill.textContent = '🔄 Đang kiểm tra giao dịch PayOS...';
+            verifyPayosOrderPayment(orderCode)
+                .then((res) => {
+                    if (res.isPaid) {
+                        statusPill.textContent = '✓ PayOS xác nhận: ĐÃ THANH TOÁN';
+                        statusPill.style.background = 'rgba(16, 185, 129, 0.25)';
+                        statusPill.style.color = '#6ee7b7';
+                        statusPill.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+                    } else {
+                        statusPill.textContent = `⏳ Trạng thái PayOS: ${res.payosStatus || 'Chờ xác nhận'}`;
+                    }
+                })
+                .catch(() => {
+                    statusPill.textContent = '⏳ Đang chờ xác nhận TT';
+                });
+        }
+    </script>
+</body>
+
+</html>
+

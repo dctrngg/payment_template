@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cổng Soát Vé & Quét QR Bảo Mật (BTC Check-in)</title>
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --card-bg: #111827;
+            --border-color: rgba(255, 255, 255, 0.12);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --green: #10b981;
+            --red: #ef4444;
+            --amber: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            padding: 20px 16px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .header h1 {
+            font-size: 20px;
+            color: var(--accent);
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 18px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        input[type="text"], input[type="password"], input[type="email"] {
+            width: 100%;
+            background: #1e293b;
+            border: 1.5px solid rgba(255, 255, 255, 0.16);
+            color: #fff;
+            padding: 13px 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: Consolas, monospace;
+            outline: none;
+            margin-bottom: 12px;
+        }
+        input:focus {
+            border-color: var(--accent);
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            padding: 13px 18px;
+            font-size: 15px;
+            font-weight: 700;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            color: #082f49;
+            width: 100%;
+        }
+        .btn-checkin {
+            background: var(--green);
+            color: #052e16;
+            width: 100%;
+            font-size: 16px;
+            padding: 15px;
+            margin-top: 14px;
+        }
+        .result-box {
+            border-radius: 16px;
+            padding: 22px;
+            margin-top: 16px;
+            display: none;
+        }
+        .result-valid {
+            background: rgba(16, 185, 129, 0.14);
+            border: 2px solid #10b981;
+        }
+        .result-used {
+            background: rgba(245, 158, 11, 0.15);
+            border: 2px solid #f59e0b;
+        }
+        .result-invalid {
+            background: rgba(239, 68, 68, 0.15);
+            border: 2px solid #ef4444;
+        }
+        .status-title {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+        .meta-row {
+            font-size: 14.5px;
+            margin: 6px 0;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Cổng đăng nhập -->
+    <div class="container" id="login-gate">
+        <div class="card" style="margin-top: 40px;">
+            <h2 style="color: var(--accent); margin-bottom: 8px;">🔒 Đăng Nhập Cổng Soát Vé</h2>
+            <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 18px;">
+                Nhân sự soát vé tại cổng chỉ có quyền quét và đánh dấu vé vào cổng, không thể xem danh sách vé trên hệ thống.
+            </p>
+            <form id="login-form">
+                <label>Email Nhân Sự</label>
+                <input type="email" id="admin-email" required placeholder="staff@yourdomain.com">
+                <label>Mật khẩu</label>
+                <input type="password" id="admin-password" required placeholder="••••••••">
+                <div id="login-err" style="color: #f87171; font-size: 13px; margin-bottom: 10px; display: none;"></div>
+                <button type="submit" class="btn-primary">Đăng Nhập</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Giao diện Soát vé -->
+    <div class="container" id="scanner-app" style="display: none;">
+        <div class="header">
+            <div>
+                <h1>📷 Cổng Soát Vé Bảo Mật</h1>
+                <p id="event-sub" style="font-size: 13px; color: var(--text-muted);"></p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span id="scanner-role-badge" style="font-size: 12px; color: #38bdf8; font-weight: 700;"></span>
+                <a href="admin-orders.html" style="color: var(--accent); text-decoration: none; font-size: 13.5px; font-weight: 600;">← Bảng Đơn</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <label for="ticket-code-input">🎟️ Nhập hoặc Quét Mã Vé (VD: HVC-8K4P9X-E3A1)</label>
+            <input type="text" id="ticket-code-input" placeholder="HVC-XXXXXX-XXXX" autofocus style="text-transform: uppercase; font-size: 18px; font-weight: 800; letter-spacing: 1px;">
+
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+                <input type="checkbox" id="auto-checkin-toggle" checked style="width: 18px; height: 18px;">
+                <label for="auto-checkin-toggle" style="margin: 0; font-size: 13px; color: #cbd5e1; text-transform: none; cursor: pointer;">
+                    ⚡ Tự động đánh dấu Check-in ngay khi mã vé hợp lệ (1 chạm)
+                </label>
+            </div>
+
+            <button type="button" id="btn-verify" class="btn-primary">🔍 Kiểm Tra & Soát Vé</button>
+
+            <div id="result-box" class="result-box"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { EVENT_CONFIG, FIREBASE_CONFIG } from "./js/config.js";
+        import {
+            db,
+            auth,
+            doc,
+            getDoc,
+            updateDoc,
+            serverTimestamp,
+            signInWithEmailAndPassword,
+            onAuthStateChanged,
+            escapeHtml
+        } from "./js/firebase-core.js";
+        import {
+            checkServerRole,
+            loadServerSecretConfig,
+            verifyTicketCodeSignature
+        } from "./js/ticket-service.js";
+
+        document.getElementById('event-sub').textContent = EVENT_CONFIG.eventName;
+
+        const loginGate = document.getElementById('login-gate');
+        const scannerApp = document.getElementById('scanner-app');
+        const loginForm = document.getElementById('login-form');
+        const loginErr = document.getElementById('login-err');
+        const scannerRoleBadge = document.getElementById('scanner-role-badge');
+
+        const ticketInput = document.getElementById('ticket-code-input');
+        const autoCheckinToggle = document.getElementById('auto-checkin-toggle');
+        const btnVerify = document.getElementById('btn-verify');
+        const resultBox = document.getElementById('result-box');
+
+        let currentUser = null;
+        let isSuperAdmin = false;
+        let superHmacSecret = '';
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginErr.style.display = 'none';
+            try {
+                await signInWithEmailAndPassword(
+                    auth,
+                    document.getElementById('admin-email').value.trim(),
+                    document.getElementById('admin-password').value
+                );
+            } catch (err) {
+                loginErr.textContent = 'Sai thông tin đăng nhập.';
+                loginErr.style.display = 'block';
+            }
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                loginGate.style.display = 'none';
+                scannerApp.style.display = 'block';
+                const roleInfo = await checkServerRole(user);
+                isSuperAdmin = roleInfo.isSuperAdmin;
+                scannerRoleBadge.textContent = isSuperAdmin ? `👑 Super Admin (${user.email})` : `📷 Nhân sự soát cổng (${user.email})`;
+                if (isSuperAdmin) {
+                    try {
+                        const cfg = await loadServerSecretConfig();
+                        superHmacSecret = cfg.hmacSecret || '';
+                    } catch (_) {}
+                }
+                ticketInput.focus();
+            } else {
+                currentUser = null;
+                loginGate.style.display = 'block';
+                scannerApp.style.display = 'none';
+            }
+        });
+
+        async function markTicketCheckedIn(code) {
+            const ticketRef = doc(db, FIREBASE_CONFIG.ticketsCollection || "tickets", code);
+            await updateDoc(ticketRef, {
+                checkedIn: true,
+                checkedInAt: serverTimestamp(),
+                checkedInBy: currentUser ? currentUser.email : 'scanner'
+            });
+        }
+
+        async function verifyAndProcessTicket() {
+            const rawCode = ticketInput.value.trim().toUpperCase();
+            if (!rawCode) return;
+
+            resultBox.style.display = 'block';
+            resultBox.className = 'result-box';
+            resultBox.innerHTML = `<p style="color: #94a3b8;">⏳ Đang kiểm tra vé <strong>${escapeHtml(rawCode)}</strong> trên Server...</p>`;
+
+            try {
+                const ticketRef = doc(db, FIREBASE_CONFIG.ticketsCollection || "tickets", rawCode);
+                const snap = await getDoc(ticketRef);
+
+                if (!snap.exists()) {
+                    resultBox.className = 'result-box result-invalid';
+                    resultBox.innerHTML = `
+                        <div class="status-title" style="color: #f87171;">❌ VÉ GIẢ MẠO HOẶC KHÔNG TỒN TẠI!</div>
+                        <p class="meta-row">Mã vé <strong>${escapeHtml(rawCode)}</strong> chưa từng được Super Admin phát hành trên hệ thống.</p>
+                    `;
+                    return;
+                }
+
+                const data = snap.data();
+
+                // Nếu là Super Admin (có quyền đọc khóa bí mật), kiểm tra thêm cả chữ ký HMAC-SHA256 kép
+                if (isSuperAdmin && superHmacSecret) {
+                    const isSigValid = await verifyTicketCodeSignature(rawCode, data.orderId, data.ticketNumber, superHmacSecret);
+                    if (!isSigValid) {
+                        resultBox.className = 'result-box result-invalid';
+                        resultBox.innerHTML = `
+                            <div class="status-title" style="color: #f87171;">🚨 CẢNH BÁO: SAI CHỮ KÝ SỐ HMAC-SHA256!</div>
+                            <p class="meta-row">Mã vé <strong>${escapeHtml(rawCode)}</strong> không khớp chữ ký bảo mật.</p>
+                        `;
+                        return;
+                    }
+                }
+
+                if (data.status !== 'VALID') {
+                    resultBox.className = 'result-box result-invalid';
+                    resultBox.innerHTML = `
+                        <div class="status-title" style="color: #f87171;">⛔ VÉ ĐÃ BỊ THU HỒI HOẶC CHƯA DUYỆT!</div>
+                        <p class="meta-row">Trạng thái: <strong>${escapeHtml(data.status)}</strong></p>
+                    `;
+                    return;
+                }
+
+                if (data.checkedIn) {
+                    const usedTime = data.checkedInAt && data.checkedInAt.toDate
+                        ? data.checkedInAt.toDate().toLocaleString('vi-VN')
+                        : 'Trước đó';
+                    resultBox.className = 'result-box result-used';
+                    resultBox.innerHTML = `
+                        <div class="status-title" style="color: #fbbf24;">⚠️ CẢNH BÁO: VÉ NÀY ĐÃ CHECK-IN RỒI!</div>
+                        <p class="meta-row"><strong>Thời gian vào cổng trước đó:</strong> ${escapeHtml(usedTime)}</p>
+                        <p class="meta-row"><strong>Người soát trước đó:</strong> ${escapeHtml(data.checkedInBy || '—')}</p>
+                        <p class="meta-row"><strong>Mã vé:</strong> ${escapeHtml(rawCode)} (${escapeHtml(data.ticketLabel || '')})</p>
+                        <p class="meta-row"><strong>Khách hàng:</strong> ${escapeHtml(data.customerName)} — ${escapeHtml(data.phone)}</p>
+                        <p class="meta-row" style="color: #fde68a; margin-top: 8px;">👉 Không cho phép dùng lại mã QR đã quét!</p>
+                    `;
+                    return;
+                }
+
+                if (autoCheckinToggle.checked) {
+                    await markTicketCheckedIn(rawCode);
+                    resultBox.className = 'result-box result-valid';
+                    resultBox.innerHTML = `
+                        <div class="status-title" style="color: #34d399;">✅ VÉ HỢP LỆ — ĐÃ CHECK-IN THÀNH CÔNG!</div>
+                        <p class="meta-row"><strong>Mã vé:</strong> ${escapeHtml(rawCode)} (${escapeHtml(data.ticketLabel || '')})</p>
+                        <p class="meta-row"><strong>Khách hàng:</strong> ${escapeHtml(data.customerName)}</p>
+                        <p class="meta-row"><strong>Số điện thoại:</strong> ${escapeHtml(data.phone)}</p>
+                        <p class="meta-row"><strong>Xác thực Server:</strong> <span style="color: #34d399;">✓ Vé chính thức do Super Admin phát hành</span></p>
+                    `;
+                    ticketInput.select();
+                } else {
+                    resultBox.className = 'result-box result-valid';
+                    resultBox.innerHTML = `
+                        <div class="status-title" style="color: #34d399;">✓ VÉ HỢP LỆ (CHƯA SỬ DỤNG)</div>
+                        <p class="meta-row"><strong>Mã vé:</strong> ${escapeHtml(rawCode)} (${escapeHtml(data.ticketLabel || '')})</p>
+                        <p class="meta-row"><strong>Khách hàng:</strong> ${escapeHtml(data.customerName)} (${escapeHtml(data.phone)})</p>
+                        <button type="button" id="btn-confirm-checkin" class="btn-checkin">✅ XÁC NHẬN CHO VÀO CỔNG</button>
+                    `;
+                    document.getElementById('btn-confirm-checkin').addEventListener('click', async () => {
+                        await markTicketCheckedIn(rawCode);
+                        verifyAndProcessTicket();
+                    });
+                }
+            } catch (err) {
+                resultBox.className = 'result-box result-invalid';
+                resultBox.innerHTML = `<p style="color: #f87171;">Lỗi hệ thống: ${escapeHtml(err.message)}</p>`;
+            }
+        }
+
+        btnVerify.addEventListener('click', verifyAndProcessTicket);
+        ticketInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                verifyAndProcessTicket();
+            }
+        });
+    </script>
+</body>
+</html>

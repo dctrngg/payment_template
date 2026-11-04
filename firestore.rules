@@ -1,0 +1,132 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // 0. HÀM KIỂM TRA QUYỀN SUPER ADMIN TỪ SERVER (HỖ TRỢ NHIỀU SUPER ADMIN)
+    // =========================================================================
+    // Quyền Super Admin được đối chiếu trực tiếp với UID gốc hoặc danh sách
+    // superAdminEmails lưu trong /system_secrets/bootstrap trên Server.
+    function isSuperAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/system_secrets/bootstrap) &&
+        (
+          get(/databases/$(database)/documents/system_secrets/bootstrap).data.superAdminUid == request.auth.uid ||
+          (
+            'superAdminEmails' in get(/databases/$(database)/documents/system_secrets/bootstrap).data &&
+            request.auth.token.email in get(/databases/$(database)/documents/system_secrets/bootstrap).data.superAdminEmails
+          )
+        );
+    }
+
+    function isStaffAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Nhân viên đối soát Bill (Reviewer) chỉ được phép cập nhật trạng thái xác nhận Bill,
+    // TUYỆT ĐỐI KHÔNG được phép sửa số tiền, thông tin khách hay tự chuyển sang APPROVED.
+    function isValidReviewerOrderUpdate() {
+      let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      let allowedReviewerKeys = ['status', 'verifiedBy', 'verifiedAt'];
+      let validTargetStatus = request.resource.data.status in ['PENDING', 'BILL_VERIFIED'];
+      return isStaffAuthenticated() &&
+        changedKeys.hasOnly(allowedReviewerKeys) &&
+        validTargetStatus;
+    }
+
+    // Nhân viên quét vé tại cổng (Gate Scanner) chỉ được đánh dấu checkedIn cho từng vé
+    function isValidScannerCheckinUpdate() {
+      let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      return isStaffAuthenticated() &&
+        changedKeys.hasOnly(['checkedIn', 'checkedInAt', 'checkedInBy']);
+    }
+
+    // =========================================================================
+    // 1. KIỂM TRA ĐƠN ĐẶT VÉ HỢP LỆ KHI KHÁCH MUA (CHỐNG SỬA GIÁ 0Đ)
+    // =========================================================================
+    function isValidOrderCreate(data) {
+      let ticketPrice = 320000;
+      let qty = data.quantity;
+      let subtotal = qty * ticketPrice;
+
+      let validQuantityAndStatus =
+        qty is int && qty >= 1 && qty <= 5 &&
+        (data.status == 'pending' || data.status == 'PENDING');
+
+      let validPricing =
+        data.totalAmount is int &&
+        (
+          data.totalAmount == subtotal ||
+          (data.voucherCode in ['HVCUNFOLD', 'VIP10'] && data.totalAmount == (subtotal * 90) / 100) ||
+          (data.voucherCode == 'CHV' && data.totalAmount == subtotal - (qty * 20000))
+        );
+
+      return validQuantityAndStatus && validPricing;
+    }
+
+    // =========================================================================
+    // 2. BẢNG KHÓA BÍ MẬT & ĐỊNH DANH SUPER ADMIN ('system_secrets')
+    // =========================================================================
+    // - bootstrap: Chỉ cho phép khởi tạo 1 lần duy nhất khi chưa có Super Admin.
+    //   Sau khi đã tạo, khóa vĩnh viễn (allow update, delete: if false).
+    match /system_secrets/bootstrap {
+      allow get: if isStaffAuthenticated();
+      allow create: if isStaffAuthenticated() &&
+        request.resource.data.superAdminUid == request.auth.uid;
+      // Cho phép Super Admin thêm/bớt danh sách email đồng Super Admin (VD: 3 tài khoản),
+      // nhưng không ai được xóa quyền của Owner gốc (superAdminUid)
+      allow update: if isSuperAdmin() &&
+        request.resource.data.superAdminUid == resource.data.superAdminUid;
+      allow delete: if false;
+    }
+
+    // - config: Chứa Khóa Bí Mật HMAC-SHA256 & Danh sách Webhook gửi Email.
+    //   CHỈ DUY NHẤT SUPER ADMIN MỚI ĐỌC/GHI ĐƯỢC (Nhân viên mở F12 bị chặn 100%).
+    match /system_secrets/config {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // =========================================================================
+    // 3. COLLECTION 'orders': ĐƠN ĐẶT MUA VÉ (KHÔNG CHỨA MÃ VÉ THẬT)
+    // =========================================================================
+    match /orders/{orderId} {
+      allow create: if isValidOrderCreate(request.resource.data);
+      allow get: if true;
+      allow list: if isStaffAuthenticated();
+
+      // Super Admin có toàn quyền cập nhật; Nhân viên chỉ được xác nhận Bill (BILL_VERIFIED)
+      allow update: if isSuperAdmin() || isValidReviewerOrderUpdate();
+      allow delete: if isSuperAdmin();
+    }
+
+    // =========================================================================
+    // 4. COLLECTION 'order_tickets': BẢNG LƯU MÃ VÉ THEO ĐƠN (CHỈ SUPER ADMIN)
+    // =========================================================================
+    // Tách riêng mã vé thật sang bảng này để Nhân viên đối soát Bill dù mở F12
+    // đọc bảng 'orders' cũng KHÔNG BAO GIỜ nhìn thấy mã vé của khách!
+    match /order_tickets/{orderId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // =========================================================================
+    // 5. COLLECTION 'tickets': MÃ VÉ CHECK-IN ĐÃ KÝ SỐ HMAC-SHA256
+    // =========================================================================
+    match /tickets/{ticketId} {
+      // Chỉ ai biết chính xác mã vé (khách nhận qua Email / quét QR tại cổng) mới get được 1 vé
+      allow get: if true;
+
+      // CHẶN ĐỨNG NHÂN VIÊN DÙNG F12 TẢI DANH SÁCH TOÀN BỘ VÉ (list) HOẶC TỰ TẠO VÉ (create)
+      allow list, create, delete: if isSuperAdmin();
+
+      // Nhân viên soát cổng chỉ được phép đánh dấu checkedIn = true khi quét QR
+      allow update: if isSuperAdmin() || isValidScannerCheckinUpdate();
+    }
+
+    // =========================================================================
+    // 6. COLLECTION 'mail': HÀNG ĐỢI GỬI EMAIL TỰ ĐỘNG
+    // =========================================================================
+    match /mail/{mailId} {
+      allow read, write: if isSuperAdmin();
+    }
+  }
+}

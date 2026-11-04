@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra Cứu Trạng Thái Đơn Vé</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 20%, rgba(0, 102, 255, 0.2), transparent 45%),
+                        radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.16), transparent 45%),
+                        #070b14;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 520px;
+            padding: 36px 32px;
+            border-radius: 22px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        p.sub {
+            font-size: 13.5px;
+            color: #64748b;
+            margin-bottom: 18px;
+            line-height: 1.5;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 13px 16px;
+            font-size: 15px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            background: #f8fafc;
+            outline: none;
+            margin-bottom: 12px;
+        }
+
+        input[type="text"]:focus {
+            border-color: #0066ff;
+            background: #fff;
+        }
+
+        button#searchButton {
+            width: 100%;
+            padding: 13px;
+            font-size: 15.5px;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, #0066ff, #00c6ff);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .output {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .footer-links {
+            margin-top: 22px;
+            padding-top: 14px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            font-size: 13.5px;
+        }
+
+        .footer-links a {
+            color: #0066ff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>🔍 Tra Cứu Đơn & Mã Vé Điện Tử</h2>
+        <p class="sub">Nhập <strong>Mã Đơn Hàng (Order ID)</strong> hoặc <strong>Mã Vé Check-in (VD: HVC-...)</strong> để kiểm tra trạng thái duyệt vé và tải mã QR:</p>
+        <input type="text" id="searchInput" placeholder="Nhập Mã Đơn Hàng hoặc Mã Vé (HVC-...)...">
+        <button id="searchButton">Kiểm Tra Ngay</button>
+        <div class="output"></div>
+
+        <div class="footer-links">
+            <a href="index.html">← Quay lại Trang Đặt Vé</a>
+        </div>
+    </div>
+
+    <script type="module" src="./js/check-order.js"></script>
+</body>
+
+</html>
+

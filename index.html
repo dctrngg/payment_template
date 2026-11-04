@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Đặt Vé & Thanh Toán Trực Tuyến</title>
+    <link rel="stylesheet" href="style/checkout.css?v=1.0">
+</head>
+
+<body>
+    <div class="page-bg-overlay"></div>
+
+    <!-- Thanh điều hướng nhanh -->
+    <nav class="top-nav-bar">
+        <a href="#" id="cfg-landing-link-brand" class="top-nav-brand">
+            <span class="live-dot"></span>
+            <span id="cfg-nav-title">CONCERT E-TICKET</span>
+        </a>
+        <div class="top-nav-links">
+            <a href="#" id="cfg-landing-link" class="nav-pill">✨ Giới Thiệu Sự Kiện</a>
+            <a href="check-order.html" class="nav-pill">🔍 Tra Cứu Đơn Vé</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- CỘT BÊN TRÁI: THÔNG TIN SỰ KIỆN & MÃ VIETQR ĐỘNG (Tự động render từ config.js) -->
+        <div class="data-display">
+            <div class="badge-row">
+                <span class="brand-badge" id="cfg-event-badge">Official E-Ticket</span>
+                <span class="urgency-badge" id="cfg-status-badge">⚡ Cổng vé trực tuyến đang mở</span>
+            </div>
+
+            <h2 id="cfg-event-name">Tên Sự Kiện</h2>
+            <p class="amount"><strong id="cfg-unit-price-top">320.000 VNĐ</strong> <span>/ vé tiêu chuẩn</span></p>
+
+            <!-- Tóm tắt chi phí -->
+            <div class="summary-card">
+                <div class="summary-row">
+                    <span>Loại vé</span>
+                    <strong style="color: #fff;" id="cfg-ticket-type">Vé Điện Tử (E-Ticket QR)</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Đơn giá</span>
+                    <span id="cfg-unit-price">320.000 VNĐ</span>
+                </div>
+                <div class="summary-row">
+                    <span>Số lượng vé</span>
+                    <strong id="quantity-display" style="color: #38bdf8;">1 vé</strong>
+                </div>
+                <div class="summary-row discount-row" id="discount-row" style="display: none;">
+                    <span id="discount-label">Ưu đãi / Voucher</span>
+                    <span id="discount-amount">-0 VNĐ</span>
+                </div>
+                <div class="summary-row total-row">
+                    <span>Tổng cần thanh toán</span>
+                    <span id="total-due">320.000 VNĐ</span>
+                </div>
+            </div>
+
+            <!-- Khối Hướng dẫn Cổng Thanh Toán Tự Động PayOS -->
+            <div class="banking-detail">
+                <div class="banking-title">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    Cổng Thanh Toán VietQR Tự Động (PayOS)
+                </div>
+
+                <div class="bank-info-box" style="margin-top: 8px;">
+                    <div class="bank-row">
+                        <span class="bank-row-label">Phương thức:</span>
+                        <span class="bank-row-value highlight-bank">VietQR Động (Napas 247 / PayOS)</span>
+                    </div>
+                    <div class="bank-row">
+                        <span class="bank-row-label">Xác nhận giao dịch:</span>
+                        <span class="bank-row-value" style="color: #34d399; font-weight: 700;">⚡ Tự động 100% (Không cần chụp Bill)</span>
+                    </div>
+                    <div class="bank-row">
+                        <span class="bank-row-label">Số tiền cần TT:</span>
+                        <span class="bank-row-value">
+                            <span id="qr-amount-display" class="highlight-price">320.000 VNĐ</span>
+                        </span>
+                    </div>
+                    <div class="bank-row">
+                        <span class="bank-row-label">Mã định danh đơn:</span>
+                        <span class="bank-row-value">
+                            <span id="qr-memo-display" class="highlight-memo">HVC AUTO</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 14px; margin-top: 12px; font-size: 13px; color: #e2e8f0; line-height: 1.6;">
+                    <strong style="color: #6ee7b7; display: block; margin-bottom: 4px;">✨ Quy trình đặt vé tự động 3 bước:</strong>
+                    1. Điền thông tin người mua và chọn số lượng vé bên phải.<br/>
+                    2. Nhấn nút <strong>"Tiếp Tục & Quét Mã Thanh Toán"</strong> để mở mã QR định danh riêng cho đơn của bạn.<br/>
+                    3. Quét mã bằng bất kỳ App Ngân hàng nào — hệ thống tự động xác nhận ngay sau 2 giây!
+                </div>
+            </div>
+
+            <!-- Điều khoản & Ghi chú -->
+            <div class="terms-notes" id="cfg-terms-list"></div>
+        </div>
+
+        <!-- CỘT BÊN PHẢI: FORM NHẬP THÔNG TIN KHÁCH HÀNG -->
+        <div class="form-section">
+            <div class="form-header">
+                <div>
+                    <h3>Thông Tin Người Mua Vé</h3>
+                    <p>Điền thông tin bên dưới để nhận vé điện tử và mở cổng thanh toán QR tự động.</p>
+                </div>
+                <div class="draft-badge" id="draft-badge">
+                    <span>✓ Đã lưu nháp tự động</span>
+                    <button type="button" class="draft-clear-btn" id="btn-clear-draft">Xóa</button>
+                </div>
+            </div>
+
+            <form id="form" method="POST" novalidate>
+                <div class="form-row-2col">
+                    <div class="form-group">
+                        <label for="customer" class="form-label">
+                            <span>Họ và Tên <span class="req">*</span></span>
+                        </label>
+                        <input type="text" class="form-control" id="customer" name="Customer"
+                            placeholder="Ví dụ: Nguyễn Văn A" required />
+                        <div class="field-feedback" id="fb-customer"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone" class="form-label">
+                            <span>Số điện thoại (10 số) <span class="req">*</span></span>
+                        </label>
+                        <input type="tel" maxlength="10" class="form-control" id="phone" name="Phone"
+                            placeholder="Ví dụ: 0912345678" required />
+                        <div class="field-feedback" id="fb-phone"></div>
+                    </div>
+                </div>
+
+                <div class="form-row-2col">
+                    <div class="form-group">
+                        <label for="email" class="form-label">
+                            <span>Địa chỉ Email nhận vé <span class="req">*</span></span>
+                        </label>
+                        <input type="email" class="form-control" id="email" name="Email" placeholder="email@gmail.com"
+                            required />
+                        <div class="field-feedback" id="fb-email"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="linkfb" class="form-label">
+                            <span>Link Facebook cá nhân <span class="req">*</span></span>
+                        </label>
+                        <input type="url" class="form-control" id="linkfb" name="linkfb"
+                            placeholder="https://facebook.com/..." required />
+                        <div class="field-feedback" id="fb-linkfb"></div>
+                    </div>
+                </div>
+
+                <!-- Chọn số lượng vé -->
+                <div class="form-group">
+                    <label for="quantity" class="form-label">
+                        <span id="cfg-max-qty-label">Số lượng vé (Tối đa 5 vé / lượt) <span class="req">*</span></span>
+                    </label>
+                    <div class="quantity-stepper-wrapper">
+                        <div class="quantity-stepper">
+                            <button type="button" class="stepper-btn" id="btn-qty-minus"
+                                aria-label="Giảm số lượng">−</button>
+                            <input type="number" min="1" max="5" id="quantity" name="Quantity" value="1" required
+                                readonly />
+                            <button type="button" class="stepper-btn" id="btn-qty-plus"
+                                aria-label="Tăng số lượng">+</button>
+                        </div>
+                        <div class="quick-qty-pills" id="quick-qty-container"></div>
+                    </div>
+                </div>
+
+                <div class="form-row-2col">
+                    <div class="form-group">
+                        <label for="referrer" class="form-label">Người giới thiệu (Nếu có)</label>
+                        <input type="text" class="form-control" id="referrer" name="referrer"
+                            placeholder="Tên CTV / Người giới thiệu" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="voucher-input" class="form-label">Mã giảm giá / Voucher</label>
+                        <div class="voucher-box">
+                            <input type="text" class="form-control" id="voucher-input" placeholder="Nhập mã (nếu có)"
+                                style="text-transform: uppercase;" />
+                            <button type="button" class="btn-apply-voucher" id="btn-apply-voucher">Áp dụng</button>
+                        </div>
+                        <div class="field-feedback" id="fb-voucher"></div>
+                    </div>
+                </div>
+
+                <div class="checkbox-box">
+                    <input type="checkbox" id="terms-agree" required>
+                    <label for="terms-agree">Tôi xác nhận thông tin Email nhận vé là chính xác và đồng ý với các quy định tham gia sự kiện của Ban Tổ Chức.</label>
+                </div>
+
+                <button type="submit" class="pay-btn" id="submit-btn">
+                    <span>⚡ Tiếp Tục & Quét Mã Thanh Toán Tự Động (PayOS)</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast-notify" class="toast-notify">✓ Đã sao chép vào bộ nhớ tạm!</div>
+
+    <div id="popup" class="popup-overlay">
+        <div class="popup-content">
+            <h2>Thông báo</h2>
+            <p id="popup-message"></p>
+            <button id="popup-close" class="popup-close-btn">Đóng</button>
+        </div>
+    </div>
+
+    <div class="popup-overlay" id="confirmation-popup">
+        <div class="popup-content">
+            <h2>Xác Nhận Đặt Vé</h2>
+            <p id="popup-cf-message"></p>
+            <div class="popup-actions">
+                <button class="popup-confirm-btn" id="popup-confirm-btn">Xác nhận gửi đơn</button>
+                <button id="popup-cf-close" class="popup-close-btn">Kiểm tra lại</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/checkout.js"></script>
+</body>
+
+</html>
