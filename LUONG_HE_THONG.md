@@ -149,3 +149,4 @@ Khi muốn áp dụng bộ mã nguồn này cho một sự kiện tiếp theo:
 2. **Deploy Google Apps Script**: Tạo một Web App trên [script.google.com](https://script.google.com), dán nội dung [`google-apps-script-mailer.gs`](./google-apps-script-mailer.gs), điền key PayOS và lấy link Webhook dán vào `appsScriptWebhookUrl`.
 3. **Publish Rules**: Copy [`firestore.rules`](./firestore.rules) dán vào tab **Rules** trên Firebase Console và nhấn **Publish**.
 4. **Mở bán**: Đưa thư mục lên GitHub Pages, Vercel hoặc Firebase Hosting là hệ thống tự động vận hành 24/7!
+

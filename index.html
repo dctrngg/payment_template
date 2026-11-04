@@ -9,6 +9,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style/checkout.css?v=2.0">
+    <script>
+        // Clean URL: Ẩn /index.html hoặc đuôi .html trên thanh địa chỉ trình duyệt cho chuyên nghiệp
+        (function() {
+            try {
+                var p = window.location.pathname;
+                if (p.endsWith('/index.html')) {
+                    var clean = p.slice(0, -10) + window.location.search + window.location.hash;
+                    window.history.replaceState(null, '', clean || '/');
+                } else if (p.endsWith('.html')) {
+                    var cleanHtml = p.slice(0, -5) + window.location.search + window.location.hash;
+                    window.history.replaceState(null, '', cleanHtml);
+                }
+            } catch (_) {}
+        })();
+    </script>
 </head>
 
 <body>
