@@ -851,7 +851,7 @@
             </select>
 
             <div class="btn-group">
-                <button class="btn-solid" id="btn-verify-payos-batch" title="Kiểm tra tự động các đơn chờ qua PayOS">⚡ Đối soát PayOS</button>
+                <button class="btn-solid" id="btn-verify-payos-batch" title="Tự động kiểm tra PayOS, duyệt đơn, cấp mã vé & gửi Email 100%">⚡ Tự động duyệt & Cấp vé PayOS</button>
                 <button class="btn-outline" id="btn-refresh">↻ Làm mới</button>
                 <button class="btn-outline" id="btn-export-csv">↓ Xuất CSV</button>
                 <button class="btn-outline" id="btn-export-json">↓ JSON</button>
@@ -961,7 +961,8 @@
             revokeOrderTickets,
             buildTicketEmailHtml,
             sendTicketEmail,
-            verifyPayosOrderPayment
+            verifyPayosOrderPayment,
+            autoFulfillPayosOrder
         } from "./js/ticket-service.js";
 
         document.getElementById('login-event-name').textContent = EVENT_CONFIG.eventName;
@@ -1298,6 +1299,7 @@
 
                 allOrders.sort((a, b) => b.rawTime - a.rawTime);
                 applyFilters();
+                runPayosAutoPilot();
             } catch (error) {
                 tbody.innerHTML = `
                     <tr>
@@ -1656,15 +1658,18 @@
                     const webhookUrls = webhookUrlInput.value.trim() || EMAIL_CONFIG.appsScriptWebhookUrl || '';
 
                     try {
-                        const res = await verifyPayosOrderPayment(target.payosOrderCode, webhookUrls);
-                        if (res.isPaid) {
-                            await verifyOrderBillByReviewer(target.id, 'BILL_VERIFIED', 'PayOS Auto');
-                            target.status = 'BILL_VERIFIED';
-                            target.verifiedBy = 'PayOS Auto';
-                            showCopyToast(`PayOS xác nhận ĐÃ THANH TOÁN (#${target.payosOrderCode})`);
+                        const autoRes = await autoFulfillPayosOrder(target.id, target.payosOrderCode, webhookUrls);
+                        if (autoRes.isPaid) {
+                            target.status = 'APPROVED';
+                            target.verifiedBy = 'PayOS Auto (100%)';
+                            target.realTicketCodes = autoRes.ticketCodes || [];
+                            target.maskedTickets = autoRes.maskedTickets || [];
+                            target.emailSent = Boolean(autoRes.emailSent);
+                            if (autoRes.ticketCodes) realTicketVaultMap[target.id] = autoRes.ticketCodes;
+                            showCopyToast(`✓ Đã tự động duyệt, cấp vé & gửi mail (#${target.payosOrderCode})`);
                             applyFilters();
                         } else {
-                            alert(`Trạng thái PayOS cho đơn #${target.payosOrderCode}: ${res.payosStatus || 'CHƯA THANH TOÁN'}`);
+                            alert(`Trạng thái PayOS cho đơn #${target.payosOrderCode}: ${autoRes.payosStatus || 'CHƯA THANH TOÁN'}`);
                             btn.disabled = false;
                             btn.textContent = '⚡ PayOS';
                         }
@@ -1735,47 +1740,73 @@
             });
         }
 
-        // Đối soát tự động hàng loạt các đơn đang chờ (PENDING) qua PayOS
+        // AUTO-PILOT NGẦM: Tự động kiểm tra PayOS, tự động duyệt APPROVED, cấp mã vé & gửi Email 100% không cần bấm nút
+        let isAutoPilotRunning = false;
+        async function runPayosAutoPilot(showAlertWhenDone = false) {
+            if (isAutoPilotRunning) return;
+            const pendingWithCode = allOrders.filter(o => (o.status === 'PENDING' || o.status === 'BILL_VERIFIED') && o.payosOrderCode);
+            if (pendingWithCode.length === 0) {
+                if (showAlertWhenDone) alert('Tất cả các đơn PayOS đều đã được duyệt hoặc hiện không có đơn chờ nào.');
+                return;
+            }
+
+            const webhookUrls = webhookUrlInput.value.trim() || EMAIL_CONFIG.appsScriptWebhookUrl || '';
+            if (!webhookUrls) {
+                if (showAlertWhenDone) alert('Vui lòng cấu hình Google Apps Script Webhook URL trong js/config.js.');
+                return;
+            }
+
+            isAutoPilotRunning = true;
+            if (btnVerifyPayosBatch) btnVerifyPayosBatch.disabled = true;
+            let approvedCount = 0;
+
+            for (let i = 0; i < pendingWithCode.length; i++) {
+                const order = pendingWithCode[i];
+                if (btnVerifyPayosBatch) {
+                    btnVerifyPayosBatch.textContent = `🤖 Đang tự duyệt ${i + 1}/${pendingWithCode.length}...`;
+                }
+                try {
+                    const autoRes = await autoFulfillPayosOrder(order.id, order.payosOrderCode, webhookUrls);
+                    if (autoRes && autoRes.isPaid) {
+                        order.status = 'APPROVED';
+                        order.verifiedBy = 'PayOS Auto (100%)';
+                        order.realTicketCodes = autoRes.ticketCodes || [];
+                        order.maskedTickets = autoRes.maskedTickets || [];
+                        order.emailSent = Boolean(autoRes.emailSent);
+                        if (autoRes.ticketCodes) realTicketVaultMap[order.id] = autoRes.ticketCodes;
+                        approvedCount++;
+                        applyFilters();
+                    }
+                } catch (e) {
+                    console.warn('Bỏ qua đơn PayOS chưa thanh toán:', order.payosOrderCode, e.message);
+                }
+            }
+
+            if (btnVerifyPayosBatch) {
+                btnVerifyPayosBatch.disabled = false;
+                btnVerifyPayosBatch.textContent = '⚡ Tự động duyệt & Cấp vé PayOS';
+            }
+            isAutoPilotRunning = false;
+
+            if (approvedCount > 0) {
+                showCopyToast(`🤖 Auto-Pilot: Đã tự động duyệt, cấp vé & gửi mail ${approvedCount} đơn PayOS!`);
+            }
+            if (showAlertWhenDone) {
+                alert(`Hoàn tất tự động hóa PayOS: Đã duyệt, cấp vé & gửi Email cho ${approvedCount}/${pendingWithCode.length} đơn thanh toán thành công!`);
+            }
+        }
+
         const btnVerifyPayosBatch = document.getElementById('btn-verify-payos-batch');
         if (btnVerifyPayosBatch) {
-            btnVerifyPayosBatch.addEventListener('click', async () => {
-                const pendingWithCode = allOrders.filter(o => o.status === 'PENDING' && o.payosOrderCode);
-                if (pendingWithCode.length === 0) {
-                    alert('Hiện không có đơn chờ (PENDING) nào có mã đối soát PayOS.');
-                    return;
-                }
-
-                const webhookUrls = webhookUrlInput.value.trim() || EMAIL_CONFIG.appsScriptWebhookUrl || '';
-                if (!webhookUrls) {
-                    alert('Vui lòng dán Google Apps Script Webhook URL vào mục Cấu hình Bảo mật hoặc trong file js/config.js trước khi đối soát PayOS.');
-                    return;
-                }
-
-                btnVerifyPayosBatch.disabled = true;
-                let paidCount = 0;
-
-                for (let i = 0; i < pendingWithCode.length; i++) {
-                    const order = pendingWithCode[i];
-                    btnVerifyPayosBatch.textContent = `Đang k.tra ${i + 1}/${pendingWithCode.length}...`;
-                    try {
-                        const res = await verifyPayosOrderPayment(order.payosOrderCode, webhookUrls);
-                        if (res.isPaid) {
-                            await verifyOrderBillByReviewer(order.id, 'BILL_VERIFIED', 'PayOS Auto');
-                            order.status = 'BILL_VERIFIED';
-                            order.verifiedBy = 'PayOS Auto';
-                            paidCount++;
-                            applyFilters();
-                        }
-                    } catch (e) {
-                        console.warn('Bỏ qua đơn PayOS chưa khởi tạo:', order.payosOrderCode, e.message);
-                    }
-                }
-
-                btnVerifyPayosBatch.disabled = false;
-                btnVerifyPayosBatch.textContent = '⚡ Đối soát PayOS';
-                alert(`Hoàn tất đối soát PayOS: Đã xác nhận tự động ${paidCount}/${pendingWithCode.length} đơn thanh toán thành công!`);
-            });
+            btnVerifyPayosBatch.addEventListener('click', () => runPayosAutoPilot(true));
         }
+
+        // Chạy Auto-Pilot định kỳ mỗi 20 giây khi trang Admin đang mở
+        setInterval(() => {
+            if (currentUser && allOrders.length > 0) {
+                runPayosAutoPilot(false);
+            }
+        }, 20000);
 
         btnExportCsv.addEventListener('click', () => {
             if (filteredOrders.length === 0) {

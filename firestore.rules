@@ -57,7 +57,7 @@ service cloud.firestore {
         data.totalAmount is int &&
         (
           data.totalAmount == subtotal ||
-          (data.voucherCode in ['HVCUNFOLD', 'VIP10'] && data.totalAmount == (subtotal * 90) / 100) ||
+          (data.voucherCode in ['HVCGAMEON', 'GAMEON', 'HVCUNFOLD', 'VIP10'] && data.totalAmount == (subtotal * 90) / 100) ||
           (data.voucherCode == 'CHV' && data.totalAmount == subtotal - (qty * 20000))
         );
 
@@ -94,18 +94,30 @@ service cloud.firestore {
       allow get: if true;
       allow list: if isStaffAuthenticated();
 
-      // Super Admin có toàn quyền cập nhật; Nhân viên chỉ được xác nhận Bill (BILL_VERIFIED)
-      allow update: if isSuperAdmin() || isValidReviewerOrderUpdate();
+      // Super Admin, Reviewer xác nhận Bill, hoặc Tự động duyệt 100% qua PayOS
+      allow update: if isSuperAdmin() || isValidReviewerOrderUpdate() || (
+        'payosOrderCode' in resource.data &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'verifiedBy', 'verifiedAt', 'approvedBy', 'approvedAt',
+          'maskedTickets', 'issuedTicketCount', 'ticketCodes', 'emailSent', 'emailSentAt'
+        ]) &&
+        request.resource.data.status in ['APPROVED', 'BILL_VERIFIED']
+      );
       allow delete: if isSuperAdmin();
     }
 
     // =========================================================================
-    // 4. COLLECTION 'order_tickets': BẢNG LƯU MÃ VÉ THEO ĐƠN (CHỈ SUPER ADMIN)
+    // 4. COLLECTION 'order_tickets': BẢNG LƯU MÃ VÉ THEO ĐƠN (CHỈ SUPER ADMIN ĐỌC)
     // =========================================================================
     // Tách riêng mã vé thật sang bảng này để Nhân viên đối soát Bill dù mở F12
     // đọc bảng 'orders' cũng KHÔNG BAO GIỜ nhìn thấy mã vé của khách!
     match /order_tickets/{orderId} {
-      allow read, write: if isSuperAdmin();
+      allow read: if isSuperAdmin();
+      allow create, update: if isSuperAdmin() || (
+        exists(/databases/$(database)/documents/orders/$(orderId)) &&
+        'payosOrderCode' in get(/databases/$(database)/documents/orders/$(orderId)).data
+      );
+      allow delete: if isSuperAdmin();
     }
 
     // =========================================================================
@@ -115,8 +127,17 @@ service cloud.firestore {
       // Chỉ ai biết chính xác mã vé (khách nhận qua Email / quét QR tại cổng) mới get được 1 vé
       allow get: if true;
 
-      // CHẶN ĐỨNG NHÂN VIÊN DÙNG F12 TẢI DANH SÁCH TOÀN BỘ VÉ (list) HOẶC TỰ TẠO VÉ (create)
-      allow list, create, delete: if isSuperAdmin();
+      // CHẶN ĐỨNG NHÂN VIÊN DÙNG F12 TẢI DANH SÁCH TOÀN BỘ VÉ (list)
+      allow list, delete: if isSuperAdmin();
+
+      // Cho phép Super Admin hoặc hệ thống Tự động PayOS phát hành vé hợp lệ
+      allow create: if isSuperAdmin() || (
+        request.resource.data.ticketCode == ticketId &&
+        request.resource.data.status == 'VALID' &&
+        request.resource.data.checkedIn == false &&
+        request.resource.data.issuedBy == 'PAYOS_AUTO' &&
+        exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId))
+      );
 
       // Nhân viên soát cổng chỉ được phép đánh dấu checkedIn = true khi quét QR
       allow update: if isSuperAdmin() || isValidScannerCheckinUpdate();

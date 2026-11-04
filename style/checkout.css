@@ -1,25 +1,28 @@
 /* ==============================================================================
- * style/checkout.css - Bộ khung giao diện Đặt Vé & Thanh Toán VietQR (Độc lập 100%)
+ * style/checkout.css - Giao diện Đặt Vé Concept: HÙNG VƯƠNG CONCERT: GAME ON
+ * Tone chủ đạo: Đêm Đỏ Crimson (Night Crimson) + Vàng Sao Pixel (Arcade Gold)
  * ============================================================================== */
 
 :root {
-    --primary: #0066ff;
-    --primary-hover: #0052cc;
-    --primary-gradient: linear-gradient(135deg, #0066ff, #00c6ff);
-    --secondary-gradient: linear-gradient(155deg, #0b132b 0%, #1c2541 55%, #0f172a 100%);
+    --primary: #e11d48;
+    --primary-hover: #be123c;
+    --primary-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #9f1239 100%);
+    --secondary-gradient: linear-gradient(165deg, #0b0205 0%, #24050d 48%, #4c0917 100%);
+    --arcade-gold: #fde047;
+    --arcade-amber: #fbbf24;
     --accent: #10b981;
     --danger: #ef4444;
     --warning: #f59e0b;
-    --text-dark: #0f172a;
+    --text-dark: #18060a;
     --text-muted: #64748b;
-    --bg-light: #f8fafc;
-    --border-color: #cbd5e1;
-    --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
+    --bg-light: #fff9f9;
+    --border-color: #fecdd3;
+    --card-shadow: 0 28px 60px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(225, 29, 72, 0.28);
 }
 
 * {
     box-sizing: border-box;
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Be Vietnam Pro', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     margin: 0;
     padding: 0;
 }
@@ -27,7 +30,7 @@
 html, body {
     width: 100%;
     min-height: 100vh;
-    background-color: #070b14;
+    background-color: #080204;
 }
 
 body {
@@ -35,21 +38,39 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 25px 18px 40px 18px;
+    padding: 24px 18px 44px 18px;
     position: relative;
     overflow-x: hidden;
 }
 
+/* Bầu trời đêm đầy sao & hào quang đỏ Crimson chân trời chuẩn Poster GAME ON */
 .page-bg-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: radial-gradient(circle at 15% 20%, rgba(0, 102, 255, 0.22), transparent 45%),
-                radial-gradient(circle at 85% 80%, rgba(16, 185, 129, 0.16), transparent 45%),
-                rgba(7, 11, 20, 0.9);
-    backdrop-filter: blur(8px);
+    background:
+        radial-gradient(1.5px 1.5px at 12% 14%, #fffbeb 90%, transparent),
+        radial-gradient(2px 2px at 28% 8%, #fde047 90%, transparent),
+        radial-gradient(1.5px 1.5px at 46% 18%, #ffffff 90%, transparent),
+        radial-gradient(2px 2px at 68% 10%, #fde047 90%, transparent),
+        radial-gradient(1.5px 1.5px at 84% 16%, #fffbeb 90%, transparent),
+        radial-gradient(2px 2px at 92% 28%, #fde047 90%, transparent),
+        radial-gradient(circle at 50% 72%, rgba(225, 29, 72, 0.42), rgba(136, 19, 55, 0.25) 42%, transparent 70%),
+        linear-gradient(180deg, #060103 0%, #160308 45%, #3f0713 82%, #120206 100%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.city-skyline-decor {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 110px;
+    background: linear-gradient(180deg, transparent 0%, rgba(8, 2, 4, 0.85) 100%);
+    border-top: 1px solid rgba(253, 224, 71, 0.12);
     z-index: 0;
     pointer-events: none;
 }
@@ -59,7 +80,7 @@ body {
     position: relative;
     z-index: 2;
     width: 92vw;
-    max-width: 1160px;
+    max-width: 1180px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -73,27 +94,28 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: #f8fafc;
+    color: #fffbeb;
     font-weight: 800;
     font-size: 14px;
     text-decoration: none;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
+    text-shadow: 0 2px 10px rgba(225, 29, 72, 0.6);
 }
 
 .live-dot {
-    width: 9px;
-    height: 9px;
-    background-color: #10b981;
-    border-radius: 50%;
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-    animation: pulseGreen 2s infinite;
+    width: 10px;
+    height: 10px;
+    background-color: #fde047;
+    border-radius: 2px;
+    box-shadow: 0 0 0 0 rgba(253, 224, 71, 0.8);
+    animation: pulseGold 1.8s infinite;
 }
 
-@keyframes pulseGreen {
-    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+@keyframes pulseGold {
+    0% { box-shadow: 0 0 0 0 rgba(253, 224, 71, 0.8); }
+    70% { box-shadow: 0 0 0 9px rgba(253, 224, 71, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(253, 224, 71, 0); }
 }
 
 .top-nav-links {
@@ -103,13 +125,13 @@ body {
 
 .nav-pill {
     text-decoration: none;
-    color: #e2e8f0;
+    color: #ffe4e6;
     font-size: 13px;
-    font-weight: 600;
-    padding: 7px 14px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    font-weight: 700;
+    padding: 7px 15px;
+    border-radius: 99px;
+    background: rgba(159, 18, 57, 0.45);
+    border: 1px solid rgba(251, 113, 133, 0.45);
     transition: all 0.2s;
     display: inline-flex;
     align-items: center;
@@ -117,9 +139,11 @@ body {
 }
 
 .nav-pill:hover {
-    background: rgba(255, 255, 255, 0.16);
-    color: #ffffff;
+    background: #e11d48;
+    color: #fffbeb;
+    border-color: #fde047;
     transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.45);
 }
 
 /* Khung Container chính 2 cột */
@@ -129,31 +153,64 @@ body {
     display: flex;
     flex-direction: row;
     width: 92vw;
-    max-width: 1160px;
-    background: #ffffff;
+    max-width: 1180px;
+    background: #fffdf9;
     border-radius: 24px;
     overflow: hidden;
     box-shadow: var(--card-shadow);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 2px solid rgba(244, 63, 94, 0.45);
 }
 
-/* CỘT BÊN TRÁI */
+/* CỘT BÊN TRÁI (CONCEPT GAME ON) */
 .data-display {
-    width: 47%;
-    padding: 36px 32px;
+    width: 48%;
+    padding: 30px 28px;
     background: var(--secondary-gradient);
     color: #ffffff;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 2px solid rgba(244, 63, 94, 0.28);
+}
+
+/* Khung Poster GAME ON ở đầu cột trái */
+.hero-poster-frame {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 2px solid rgba(251, 113, 133, 0.55);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65), 0 0 22px rgba(225, 29, 72, 0.35);
+    margin-bottom: 16px;
+    background: #090204;
+}
+
+.hero-poster-img {
+    width: 100%;
+    height: 175px;
+    object-fit: cover;
+    object-position: center 42%;
+    display: block;
+}
+
+.hero-poster-tag {
+    position: absolute;
+    bottom: 8px;
+    right: 10px;
+    background: rgba(15, 3, 7, 0.85);
+    color: #fde047;
+    border: 1px solid rgba(253, 224, 71, 0.55);
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-family: 'Press Start 2P', Consolas, monospace;
+    font-size: 8.5px;
+    letter-spacing: 0.5px;
 }
 
 .badge-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
 }
 
@@ -161,42 +218,41 @@ body {
     display: inline-block;
     padding: 5px 12px;
     font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.2px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.14);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    border-radius: 20px;
+    color: #ffe4e6;
+    background: rgba(225, 29, 72, 0.28);
+    border: 1px solid rgba(251, 113, 133, 0.5);
+    border-radius: 99px;
 }
 
 .urgency-badge {
     display: inline-block;
-    padding: 5px 11px;
+    padding: 5px 12px;
     font-size: 11px;
-    font-weight: 600;
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.14);
-    border: 1px solid rgba(251, 191, 36, 0.3);
-    border-radius: 20px;
+    font-weight: 700;
+    color: #fde047;
+    background: rgba(250, 204, 21, 0.14);
+    border: 1px solid rgba(253, 224, 71, 0.45);
+    border-radius: 99px;
 }
 
 .data-display h2 {
-    font-size: 28px;
-    font-weight: 800;
+    font-size: 27px;
+    font-weight: 900;
     letter-spacing: -0.3px;
     line-height: 1.25;
     margin-bottom: 6px;
-    background: linear-gradient(90deg, #ffffff, #bae6fd);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #ffffff;
+    text-shadow: 0 3px 0 #9f1239, 0 0 18px rgba(244, 63, 94, 0.65);
 }
 
 .amount {
     font-size: 20px;
-    font-weight: 700;
-    color: #fbbf24;
-    margin-bottom: 20px;
+    font-weight: 800;
+    color: #fde047;
+    margin-bottom: 16px;
     display: flex;
     align-items: baseline;
     gap: 6px;
@@ -204,17 +260,17 @@ body {
 
 .amount span {
     font-size: 13px;
-    color: #94a3b8;
-    font-weight: 400;
+    color: #fda4af;
+    font-weight: 500;
 }
 
 /* Card tóm tắt giá vé */
 .summary-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(24, 4, 10, 0.68);
+    border: 1px solid rgba(251, 113, 133, 0.28);
     border-radius: 16px;
-    padding: 16px 18px;
-    margin-bottom: 20px;
+    padding: 15px 18px;
+    margin-bottom: 16px;
 }
 
 .summary-row {
@@ -222,111 +278,66 @@ body {
     justify-content: space-between;
     align-items: center;
     font-size: 13.5px;
-    color: #cbd5e1;
-    margin-bottom: 9px;
+    color: #fecdd3;
+    margin-bottom: 8px;
 }
 
 .summary-row.discount-row {
-    color: #34d399;
-    font-weight: 600;
+    color: #fde047;
+    font-weight: 700;
 }
 
 .summary-row.total-row {
     margin-top: 10px;
     padding-top: 10px;
-    border-top: 1px dashed rgba(255, 255, 255, 0.18);
+    border-top: 1px dashed rgba(251, 113, 133, 0.35);
     margin-bottom: 0;
 }
 
 .summary-row.total-row span:last-child {
     font-size: 20px;
-    font-weight: 800;
-    color: #34d399;
+    font-weight: 900;
+    color: #fde047;
+    text-shadow: 0 0 12px rgba(253, 224, 71, 0.35);
 }
 
-/* Card VietQR */
+/* Khối PayOS */
 .banking-detail {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.13);
-    border-radius: 20px;
-    padding: 20px;
+    background: rgba(24, 4, 10, 0.65);
+    border: 1px solid rgba(251, 113, 133, 0.32);
+    border-radius: 18px;
+    padding: 16px;
     text-align: center;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .banking-title {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 800;
+    color: #fffbeb;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 14px;
+    letter-spacing: 0.7px;
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-}
-
-.qr-wrapper {
-    background: #ffffff;
-    padding: 12px;
-    border-radius: 16px;
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
-    margin-bottom: 14px;
-}
-
-#vietqr-img {
-    width: 210px;
-    height: auto;
-    display: block;
-    border-radius: 8px;
-}
-
-.qr-action-bar {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 14px;
-}
-
-.btn-qr-action {
-    background: rgba(56, 189, 248, 0.15);
-    color: #7dd3fc;
-    border: 1px solid rgba(56, 189, 248, 0.35);
-    padding: 7px 14px;
-    border-radius: 10px;
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s;
-}
-
-.btn-qr-action:hover {
-    background: rgba(56, 189, 248, 0.28);
-    color: #ffffff;
 }
 
 .bank-info-box {
     text-align: left;
-    background: rgba(15, 23, 42, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 12px 15px;
-    border-radius: 14px;
-    font-size: 13px;
+    background: rgba(10, 2, 5, 0.78);
+    border: 1px solid rgba(251, 113, 133, 0.2);
+    padding: 11px 14px;
+    border-radius: 13px;
+    font-size: 12.8px;
 }
 
 .bank-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     gap: 8px;
 }
 
@@ -336,7 +347,7 @@ body {
 }
 
 .bank-row-label {
-    color: #94a3b8;
+    color: #fda4af;
     white-space: nowrap;
 }
 
@@ -344,65 +355,89 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #f1f5f9;
+    color: #fff1f2;
     font-weight: 600;
     text-align: right;
 }
 
-.btn-copy-mini {
-    background: rgba(255, 255, 255, 0.1);
-    color: #cbd5e1;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 6px;
-    padding: 2px 7px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-}
-
-.btn-copy-mini:hover {
-    background: var(--primary);
-    color: #ffffff;
-    border-color: var(--primary);
-}
-
-.highlight-bank { color: #38bdf8 !important; font-weight: 700 !important; }
-.highlight-price { color: #34d399 !important; font-weight: 800 !important; font-size: 14.5px; }
+.highlight-bank { color: #fb7185 !important; font-weight: 800 !important; }
+.highlight-price { color: #fde047 !important; font-weight: 800 !important; font-size: 14.5px; }
 .highlight-memo {
-    color: #fbbf24 !important;
-    font-weight: 700 !important;
+    color: #fde047 !important;
+    font-weight: 800 !important;
     font-family: 'Consolas', monospace;
-    background: rgba(251, 191, 36, 0.12);
-    padding: 2px 7px;
+    background: rgba(225, 29, 72, 0.28);
+    border: 1px solid rgba(253, 224, 71, 0.35);
+    padding: 2px 8px;
     border-radius: 6px;
 }
 
-.qr-note {
-    margin-top: 10px;
+.arcade-guide-box {
+    background: linear-gradient(135deg, rgba(159, 18, 57, 0.35), rgba(69, 10, 10, 0.55));
+    border: 1px solid rgba(251, 113, 133, 0.4);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: #ffe4e6;
+    line-height: 1.55;
+    text-align: left;
+}
+
+.arcade-guide-box strong:first-child {
+    color: #fde047;
+    display: block;
+    margin-bottom: 4px;
     font-size: 12px;
-    color: #94a3b8;
-    line-height: 1.4;
+    letter-spacing: 0.4px;
+}
+
+/* Các nút liên hệ đỏ chuẩn theo Poster GAME ON */
+.poster-contacts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.contact-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #be123c, #881337);
+    color: #fffbeb;
+    border: 1px solid rgba(254, 205, 211, 0.45);
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
 }
 
 .terms-notes {
-    margin-top: 18px;
-    font-size: 12px;
-    line-height: 1.6;
-    color: #94a3b8;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 14px;
+    margin-top: 14px;
+    font-size: 11.8px;
+    line-height: 1.55;
+    color: #fda4af;
+    border-top: 1px solid rgba(251, 113, 133, 0.18);
+    padding-top: 12px;
 }
 
-/* CỘT BÊN PHẢI */
+/* CỘT BÊN PHẢI (FORM ĐẶT VÉ) */
 .form-section {
-    width: 53%;
-    padding: 36px 40px;
-    background: #ffffff;
+    width: 52%;
+    padding: 34px 38px;
+    background: #fffdf9;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+}
+
+.pixel-sub-tag {
+    font-family: 'Press Start 2P', Consolas, monospace;
+    font-size: 9px;
+    color: #e11d48;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
 }
 
 .form-header {
@@ -415,8 +450,8 @@ body {
 }
 
 .form-header h3 {
-    font-size: 22px;
-    font-weight: 800;
+    font-size: 23px;
+    font-weight: 900;
     color: var(--text-dark);
     margin-bottom: 4px;
     letter-spacing: -0.3px;
@@ -425,6 +460,7 @@ body {
 .form-header p {
     font-size: 13px;
     color: var(--text-muted);
+    line-height: 1.45;
 }
 
 .draft-badge {
@@ -432,20 +468,20 @@ body {
     align-items: center;
     gap: 6px;
     font-size: 11.5px;
-    color: #059669;
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
+    color: #be123c;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
     padding: 4px 10px;
     border-radius: 20px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .draft-clear-btn {
     background: none;
     border: none;
-    color: #dc2626;
+    color: #9f1239;
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 800;
     cursor: pointer;
     text-decoration: underline;
     margin-left: 4px;
@@ -467,20 +503,20 @@ body {
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
-    font-weight: 600;
-    color: #334155;
+    font-weight: 700;
+    color: #3f121d;
     margin-bottom: 6px;
 }
 
-.form-label span.req { color: var(--danger); }
+.form-label span.req { color: var(--primary); }
 
 .form-control {
     width: 100%;
     padding: 11px 14px;
     font-size: 14px;
-    border: 1.5px solid var(--border-color);
+    border: 1.5px solid #e2e8f0;
     border-radius: 11px;
-    background-color: var(--bg-light);
+    background-color: #ffffff;
     color: var(--text-dark);
     outline: none;
     transition: all 0.2s ease-in-out;
@@ -489,15 +525,15 @@ body {
 .form-control:focus {
     border-color: var(--primary);
     background-color: #ffffff;
-    box-shadow: 0 0 0 3.5px rgba(0, 102, 255, 0.12);
+    box-shadow: 0 0 0 3.5px rgba(225, 29, 72, 0.14);
 }
 
 .form-control.is-valid { border-color: var(--accent); background-color: #f0fdf4; }
 .form-control.is-invalid { border-color: var(--danger); background-color: #fef2f2; }
 
 .field-feedback { font-size: 11.5px; margin-top: 4px; min-height: 15px; display: none; }
-.field-feedback.error { display: block; color: var(--danger); font-weight: 500; }
-.field-feedback.success { display: block; color: #059669; font-weight: 500; }
+.field-feedback.error { display: block; color: var(--danger); font-weight: 600; }
+.field-feedback.success { display: block; color: #059669; font-weight: 600; }
 
 /* Bộ nút cộng trừ số lượng vé [-] [ 1 ] [+] */
 .quantity-stepper-wrapper {
@@ -510,9 +546,9 @@ body {
 .quantity-stepper {
     display: inline-flex;
     align-items: center;
-    border: 1.5px solid var(--border-color);
+    border: 1.5px solid #fecdd3;
     border-radius: 11px;
-    background: var(--bg-light);
+    background: #fff1f2;
     overflow: hidden;
 }
 
@@ -520,10 +556,10 @@ body {
     width: 42px;
     height: 40px;
     border: none;
-    background: #e2e8f0;
-    color: #0f172a;
+    background: #ffe4e6;
+    color: #9f1239;
     font-size: 18px;
-    font-weight: 700;
+    font-weight: 800;
     cursor: pointer;
     transition: background 0.15s;
     display: flex;
@@ -532,7 +568,7 @@ body {
     user-select: none;
 }
 
-.stepper-btn:hover { background: #cbd5e1; }
+.stepper-btn:hover { background: #fecdd3; }
 
 .quantity-stepper input[type="number"] {
     width: 54px;
@@ -540,7 +576,7 @@ body {
     border: none;
     text-align: center;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 800;
     background: #ffffff;
     color: var(--text-dark);
     outline: none;
@@ -556,19 +592,19 @@ body {
 .quick-qty-pills { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .qty-pill {
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: #475569;
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .qty-pill:hover, .qty-pill.active {
-    background: #eff6ff;
+    background: #fff1f2;
     border-color: var(--primary);
     color: var(--primary);
 }
@@ -578,119 +614,63 @@ body {
 .btn-apply-voucher {
     padding: 0 16px;
     border-radius: 11px;
-    border: 1.5px solid #0f172a;
-    background: #0f172a;
-    color: #ffffff;
+    border: 1.5px solid #881337;
+    background: #881337;
+    color: #fffbeb;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
+    transition: all 0.15s;
 }
 
-/* Upload Zone & Preview */
-.file-upload-zone {
-    border: 2px dashed #94a3b8;
-    border-radius: 14px;
-    padding: 16px;
-    background: #f8fafc;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-}
-
-.file-upload-zone:hover { border-color: var(--primary); background: #eff6ff; }
-
-.file-upload-zone input[type="file"] {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-}
-
-.upload-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    pointer-events: none;
-}
-
-.upload-placeholder-title { font-size: 13.5px; font-weight: 600; color: #1e293b; }
-.upload-placeholder-sub { font-size: 12px; color: #64748b; }
-
-.bill-preview-container {
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    background: #f0fdf4;
-    border: 1.5px solid #86efac;
-    padding: 10px 14px;
-    border-radius: 12px;
-    margin-top: 8px;
-}
-
-.bill-preview-left { display: flex; align-items: center; gap: 12px; overflow: hidden; }
-
-#bill-preview-img {
-    width: 52px;
-    height: 52px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    background: #fff;
-    flex-shrink: 0;
-}
-
-.bill-preview-meta { text-align: left; overflow: hidden; }
-.bill-file-name { font-size: 13px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
-.bill-file-size { font-size: 11.5px; color: #059669; font-weight: 600; }
-
-.btn-remove-bill {
-    background: #fee2e2;
-    color: #dc2626;
-    border: none;
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    flex-shrink: 0;
+.btn-apply-voucher:hover {
+    background: var(--primary);
+    border-color: var(--primary);
 }
 
 .checkbox-box { margin: 14px 0 18px 0; display: flex; align-items: flex-start; gap: 10px; }
 .checkbox-box input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); margin-top: 2px; cursor: pointer; flex-shrink: 0; }
 .checkbox-box label { font-size: 12.5px; color: #475569; line-height: 1.5; cursor: pointer; }
 
+/* Nút bấm Arcade 3D Đỏ Crimson */
 .pay-btn {
     width: 100%;
-    padding: 15px;
-    font-size: 16px;
-    font-weight: 700;
-    color: #ffffff;
+    padding: 15px 18px;
+    font-size: 15.5px;
+    font-weight: 800;
+    color: #fffbeb;
     background: var(--primary-gradient);
-    border: none;
-    border-radius: 13px;
+    border: 1px solid #fda4af;
+    border-bottom: 4px solid #881337;
+    border-radius: 14px;
     cursor: pointer;
-    box-shadow: 0 8px 20px rgba(0, 102, 255, 0.3);
-    transition: all 0.25s ease;
+    box-shadow: 0 10px 24px rgba(225, 29, 72, 0.38);
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    letter-spacing: 0.3px;
 }
 
-.pay-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(0, 102, 255, 0.4); }
+.pay-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(225, 29, 72, 0.5);
+    filter: brightness(1.05);
+}
+
+.pay-btn:active {
+    transform: translateY(1px);
+    border-bottom-width: 2px;
+}
+
 .pay-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
 
-/* CSS Spinner độc lập không cần file ảnh ngoài */
 .css-spinner {
     width: 44px;
     height: 44px;
-    border: 4px solid #e2e8f0;
+    border: 4px solid #ffe4e6;
     border-top-color: var(--primary);
     border-radius: 50%;
     animation: spin360 0.8s linear infinite;
@@ -705,14 +685,14 @@ body {
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: #0f172a;
-    color: #ffffff;
+    background: #180408;
+    color: #fde047;
     padding: 10px 20px;
     border-radius: 30px;
     font-size: 13.5px;
-    font-weight: 600;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(56, 189, 248, 0.4);
+    font-weight: 700;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 1px solid #e11d48;
     opacity: 0;
     pointer-events: none;
     transition: all 0.25s ease;
@@ -724,7 +704,7 @@ body {
 .popup-overlay {
     position: fixed;
     inset: 0;
-    background-color: rgba(15, 23, 42, 0.72);
+    background-color: rgba(15, 3, 7, 0.78);
     backdrop-filter: blur(5px);
     display: none;
     justify-content: center;
@@ -736,13 +716,14 @@ body {
     background: #ffffff;
     padding: 28px;
     border-radius: 20px;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+    border: 2px solid #fecdd3;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
     text-align: center;
-    width: 370px;
+    width: 380px;
     max-width: 90vw;
 }
 
-.popup-content h2 { font-size: 20px; font-weight: 800; color: var(--text-dark); margin-bottom: 10px; }
+.popup-content h2 { font-size: 20px; font-weight: 800; color: #881337; margin-bottom: 10px; }
 .popup-content p { font-size: 14px; color: #475569; line-height: 1.5; margin-bottom: 16px; }
 .popup-actions { display: flex; gap: 10px; justify-content: center; }
 
@@ -750,20 +731,18 @@ body {
     padding: 10px 22px;
     border-radius: 10px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     border: none;
     cursor: pointer;
 }
 
-.popup-confirm-btn { background: var(--accent); color: white; }
+.popup-confirm-btn { background: var(--primary); color: #fffbeb; }
 .popup-close-btn { background: #e2e8f0; color: #475569; }
 
 @media screen and (max-width: 960px) {
     body { padding: 16px 10px 30px 10px; }
     .top-nav-bar, .container { width: 100%; max-width: 600px; }
     .container { flex-direction: column; border-radius: 20px; }
-    .data-display, .form-section { width: 100%; padding: 28px 20px; }
+    .data-display, .form-section { width: 100%; padding: 26px 20px; }
     .form-row-2col { grid-template-columns: 1fr; gap: 0; }
-    #vietqr-img { width: 195px; }
 }
-

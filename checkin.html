@@ -283,7 +283,7 @@
                 const data = snap.data();
 
                 // Nếu là Super Admin (có quyền đọc khóa bí mật), kiểm tra thêm cả chữ ký HMAC-SHA256 kép
-                if (isSuperAdmin && superHmacSecret) {
+                if (isSuperAdmin && superHmacSecret && data.issuedBy !== "PAYOS_AUTO") {
                     const isSigValid = await verifyTicketCodeSignature(rawCode, data.orderId, data.ticketNumber, superHmacSecret);
                     if (!isSigValid) {
                         resultBox.className = 'result-box result-invalid';

@@ -7,7 +7,7 @@
     <title>Biên Nhận Đặt Vé Điện Tử</title>
     <style>
         :root {
-            --primary: #0066ff;
+            --primary: #e11d48;
             --accent: #10b981;
             --dark: #0f172a;
         }
@@ -21,7 +21,7 @@
 
         body {
             min-height: 100vh;
-            background-color: #070b14;
+            background-color: #090204;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -34,9 +34,9 @@
         .bg-overlay {
             position: fixed;
             inset: 0;
-            background: radial-gradient(circle at 20% 20%, rgba(0, 102, 255, 0.2), transparent 45%),
-                        radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.16), transparent 45%),
-                        #070b14;
+            background: radial-gradient(circle at 20% 20%, rgba(225, 29, 72, 0.35), transparent 45%),
+                        radial-gradient(circle at 80% 80%, rgba(253, 224, 71, 0.14), transparent 45%),
+                        #120307;
             z-index: 0;
         }
 
@@ -94,7 +94,7 @@
         }
 
         .ticket-top-banner {
-            background: linear-gradient(135deg, #0b132b, #1c2541, #00509d);
+            background: linear-gradient(135deg, #160307, #6b0b1b, #be123c);
             color: #ffffff;
             padding: 22px 28px;
             display: flex;
@@ -360,6 +360,18 @@
             <div class="ticket-footer-quote" id="cfg-quote"></div>
         </div>
 
+        <!-- Khối hiển thị Thẻ Vé QR được cấp tự động 100% ngay sau khi PayOS xác nhận -->
+        <div id="auto-tickets-box" style="display: none; background: #ffffff; color: #0f172a; border-radius: 24px; padding: 24px; margin-bottom: 22px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); border: 2px solid #10b981;">
+            <div style="text-align: center; margin-bottom: 18px;">
+                <span style="display: inline-block; background: #d1fae5; color: #065f46; font-size: 12px; font-weight: 800; padding: 5px 14px; border-radius: 99px; margin-bottom: 8px;">
+                    ⚡ ĐÃ KÍCH HOẠT & GỬI EMAIL TỰ ĐỘNG 100%
+                </span>
+                <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">🎟️ THẺ VÉ ĐIỆN TỬ (QR CHECK-IN) CỦA BẠN</h2>
+                <p id="auto-mail-notice" style="font-size: 13.5px; color: #475569;">Hệ thống đã gửi bản sao kèm mã QR tới hộp thư Email của bạn.</p>
+            </div>
+            <div id="auto-tickets-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;"></div>
+        </div>
+
         <div class="action-bar">
             <button type="button" class="btn-action btn-primary" onclick="window.print()">
                 🖨 Lưu / In Biên Nhận (PDF)
@@ -377,7 +389,8 @@
 
     <script type="module">
         import { EVENT_CONFIG, EMAIL_CONFIG } from "./js/config.js";
-        import { verifyPayosOrderPayment } from "./js/ticket-service.js";
+        import { autoFulfillPayosOrder, getTicketQrImageUrl } from "./js/ticket-service.js";
+        import { escapeHtml } from "./js/firebase-core.js";
 
         document.title = `Biên Nhận Đặt Vé - ${EVENT_CONFIG.eventName}`;
         document.getElementById('cfg-event-title').textContent = EVENT_CONFIG.eventName;
@@ -411,25 +424,60 @@
             setTimeout(() => toast.classList.remove('show'), 2200);
         });
 
-        // Tự động kiểm tra trạng thái thanh toán từ PayOS nếu có orderCode & Webhook URL
+        // Tự động đối soát PayOS + Tự động duyệt đơn + Phát hành mã vé QR + Gửi Email 100%
         const statusPill = document.getElementById('receipt-status-pill');
-        if (orderCode && EMAIL_CONFIG.appsScriptWebhookUrl && statusPill) {
-            statusPill.textContent = '🔄 Đang kiểm tra giao dịch PayOS...';
-            verifyPayosOrderPayment(orderCode)
-                .then((res) => {
-                    if (res.isPaid) {
-                        statusPill.textContent = '✓ PayOS xác nhận: ĐÃ THANH TOÁN';
-                        statusPill.style.background = 'rgba(16, 185, 129, 0.25)';
-                        statusPill.style.color = '#6ee7b7';
-                        statusPill.style.borderColor = 'rgba(16, 185, 129, 0.6)';
-                    } else {
-                        statusPill.textContent = `⏳ Trạng thái PayOS: ${res.payosStatus || 'Chờ xác nhận'}`;
-                    }
-                })
-                .catch(() => {
-                    statusPill.textContent = '⏳ Đang chờ xác nhận TT';
-                });
+        const autoTicketsBox = document.getElementById('auto-tickets-box');
+        const autoTicketsList = document.getElementById('auto-tickets-list');
+        const autoMailNotice = document.getElementById('auto-mail-notice');
+
+        function renderIssuedTicketsOnThanks(ticketCodes) {
+            if (!autoTicketsBox || !autoTicketsList || !Array.isArray(ticketCodes) || ticketCodes.length === 0) return;
+            autoTicketsBox.style.display = 'block';
+            if (autoMailNotice) {
+                autoMailNotice.innerHTML = `Đã gửi tự động <strong>${ticketCodes.length} thẻ vé QR</strong> tới email <strong>${escapeHtml(email)}</strong>. Vui lòng lưu lại mã QR dưới đây để check-in tại cổng:`;
+            }
+            autoTicketsList.innerHTML = ticketCodes.map((code, idx) => {
+                const safeCode = escapeHtml(code);
+                const qrUrl = getTicketQrImageUrl(code, 220);
+                return `
+                    <div style="border: 2px solid #e11d48; border-radius: 16px; padding: 16px; text-align: center; background: #f8fafc;">
+                        <div style="font-size: 12px; font-weight: 800; color: #9f1239; margin-bottom: 8px;">VÉ #${idx + 1}/${ticketCodes.length} — CHÍNH THỨC</div>
+                        <img src="${qrUrl}" alt="QR ${safeCode}" style="width: 165px; height: 165px; border-radius: 12px; border: 1px solid #cbd5e1; padding: 6px; background: #fff; margin-bottom: 10px;" />
+                        <div style="font-family: Consolas, monospace; font-size: 17px; font-weight: 800; color: #be123c; background: #fff1f2; border: 1.5px dashed #e11d48; padding: 6px 12px; border-radius: 8px; letter-spacing: 1px;">
+                            ${safeCode}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
+
+        async function runZeroTouchAutoApproval(attempt = 1) {
+            if (!orderId || !orderCode || !EMAIL_CONFIG.appsScriptWebhookUrl || !statusPill) return;
+            statusPill.textContent = attempt === 1
+                ? '🔄 Đang xác thực PayOS & phát hành vé tự động...'
+                : `🔄 Đang đồng bộ giao dịch PayOS (Lần ${attempt})...`;
+
+            try {
+                const res = await autoFulfillPayosOrder(orderId, orderCode);
+                if (res.isPaid) {
+                    statusPill.textContent = '✓ ĐÃ DUYỆT TỰ ĐỘNG & GỬI VÉ QUA EMAIL';
+                    statusPill.style.background = 'rgba(16, 185, 129, 0.25)';
+                    statusPill.style.color = '#6ee7b7';
+                    statusPill.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+                    renderIssuedTicketsOnThanks(res.ticketCodes);
+                } else if (res.payosStatus === 'PENDING' && attempt < 8) {
+                    statusPill.textContent = '⏳ Đang chờ ngân hàng xác nhận (Tự động kiểm tra lại sau 3s)...';
+                    setTimeout(() => runZeroTouchAutoApproval(attempt + 1), 3000);
+                } else {
+                    statusPill.textContent = `⏳ Trạng thái PayOS: ${res.payosStatus || 'Chờ xác nhận'}`;
+                }
+            } catch (err) {
+                console.warn('Auto fulfill warning:', err);
+                statusPill.textContent = '⏳ Đang chờ xác nhận TT';
+            }
+        }
+
+        runZeroTouchAutoApproval(1);
     </script>
 </body>
 

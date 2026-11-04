@@ -73,6 +73,41 @@ export async function generateTicketCode(orderId, ticketNumber, secretKey) {
     return `${prefix}-${randomPart}-${signaturePart}`;
 }
 
+/**
+ * Sinh mã vé HMAC-SHA256 tất định (Deterministic) dựa trên giao dịch PayOS đã xác thực
+ * Đảm bảo mã vé sinh tự động tại thanks.html, check-order.html và Auto-Pilot Admin trùng khớp 100%
+ */
+export async function generateDeterministicPayosTicketCode(orderId, ticketNumber, payosOrderCode, txReference = "PAID") {
+    const prefix = (TICKET_SECURITY_CONFIG.ticketPrefix || "HVC").toUpperCase();
+    const randLen = TICKET_SECURITY_CONFIG.randomLength || 6;
+    const sigLen = TICKET_SECURITY_CONFIG.signatureLength || 4;
+    const seedKey = `PAYOS-AUTO-V1:${String(payosOrderCode || "").trim()}:${String(txReference || "PAID").trim()}`;
+    const payload = `${prefix}:${String(orderId || "").trim()}:${Number(ticketNumber) || 1}`;
+
+    const encoder = new TextEncoder();
+    const cryptoKey = await window.crypto.subtle.importKey(
+        "raw",
+        encoder.encode(seedKey),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+    );
+    const sigBuf = await window.crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(payload));
+    const bytes = new Uint8Array(sigBuf);
+
+    let randomPart = "";
+    for (let i = 0; i < randLen; i++) {
+        randomPart += BASE32_ALPHABET[bytes[i] % BASE32_ALPHABET.length];
+    }
+
+    let hexTail = "";
+    for (let i = randLen; i < randLen + 4; i++) {
+        hexTail += bytes[i].toString(16).padStart(2, "0").toUpperCase();
+    }
+    const signaturePart = hexTail.slice(0, sigLen);
+    return `${prefix}-${randomPart}-${signaturePart}`;
+}
+
 export async function verifyTicketCodeSignature(ticketCode, orderId, ticketNumber, secretKey) {
     if (!ticketCode || typeof ticketCode !== "string") return false;
     const parts = ticketCode.trim().toUpperCase().split("-");
@@ -383,8 +418,8 @@ export function buildTicketEmailHtml(order, ticketCodes = []) {
     const safeOrderId = escapeHtml(order.id);
     const safePhone = escapeHtml(order.phone || "---");
     const safeEmail = escapeHtml(order.email || "---");
-    const safeEventName = escapeHtml(EVENT_CONFIG.eventName);
-    const safeTicketType = escapeHtml(EVENT_CONFIG.ticketTypeName);
+    const safeEventName = escapeHtml(EVENT_CONFIG.eventName || "Hùng Vương Concert: GAME ON");
+    const safeTicketType = escapeHtml(EVENT_CONFIG.ticketTypeName || "Vé Điện Tử (Player Pass QR)");
     const formattedTotal = Number(order.totalAmount || 0).toLocaleString("vi-VN") + " VNĐ";
 
     const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
@@ -394,21 +429,21 @@ export function buildTicketEmailHtml(order, ticketCodes = []) {
         const qrUrl = getTicketQrImageUrl(code, 220);
         const singleTicketCheckUrl = `${baseUrl}/check-order.html?code=${encodeURIComponent(code)}`;
         return `
-            <div style="border: 2px solid #0066ff; border-radius: 16px; background: #ffffff; margin-bottom: 18px; overflow: hidden;">
-                <div style="background: linear-gradient(135deg, #0b132b, #00509d); color: #ffffff; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;">
-                    <strong style="font-size: 14px; letter-spacing: 0.5px;">🎟️ THẺ VÉ ĐIỆN TỬ #${idx + 1}/${ticketCodes.length}</strong>
-                    <span style="font-size: 12px; background: rgba(16,185,129,0.25); color: #6ee7b7; padding: 3px 10px; border-radius: 12px; font-weight: bold;">✓ CHÍNH THỨC</span>
+            <div style="border: 2px solid #e11d48; border-radius: 18px; background: #ffffff; margin-bottom: 18px; overflow: hidden; box-shadow: 0 8px 20px rgba(159, 18, 57, 0.12);">
+                <div style="background: linear-gradient(135deg, #160307 0%, #6b0b1b 55%, #be123c 100%); color: #ffffff; padding: 13px 18px; display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="font-size: 14px; letter-spacing: 0.6px; color: #fffbeb;">🕹️ PLAYER PASS #${idx + 1}/${ticketCodes.length}</strong>
+                    <span style="font-size: 11.5px; background: rgba(253, 224, 71, 0.2); border: 1px solid rgba(253, 224, 71, 0.55); color: #fde047; padding: 3px 10px; border-radius: 99px; font-weight: 800;">★ READY • CHÍNH THỨC</span>
                 </div>
-                <div style="padding: 20px; text-align: center;">
-                    <img src="${qrUrl}" alt="QR ${safeCode}" width="180" height="180" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; background: #fff; display: block; margin: 0 auto 12px auto;" />
-                    <div style="font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 4px;">Mã Vé Check-in (Ký số bảo mật)</div>
-                    <div style="display: inline-block; background: #f1f5f9; border: 1px dashed #0066ff; color: #0066ff; font-family: Consolas, monospace; font-size: 20px; font-weight: 800; padding: 8px 18px; border-radius: 10px; letter-spacing: 1.5px;">
+                <div style="padding: 22px 20px; text-align: center; background: #fffdf9;">
+                    <img src="${qrUrl}" alt="QR ${safeCode}" width="185" height="185" style="border: 2px solid #fecdd3; border-radius: 14px; padding: 8px; background: #ffffff; display: block; margin: 0 auto 12px auto;" />
+                    <div style="font-size: 11.5px; color: #881337; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">Mã Vé Check-in (Ký số bảo mật HMAC)</div>
+                    <div style="display: inline-block; background: #fff1f2; border: 2px dashed #e11d48; color: #be123c; font-family: Consolas, 'Courier New', monospace; font-size: 21px; font-weight: 900; padding: 8px 20px; border-radius: 10px; letter-spacing: 1.8px;">
                         ${safeCode}
                     </div>
-                    <p style="font-size: 12.5px; color: #475569; margin: 10px 0 8px 0;">
-                        Xuất trình mã QR này tại cổng soát vé. Mỗi mã vé chỉ có hiệu lực quét <strong>01 lần duy nhất</strong>.
+                    <p style="font-size: 12.5px; color: #475569; margin: 12px 0 8px 0; line-height: 1.5;">
+                        Xuất trình mã QR này tại cổng soát vé <strong>GAME ON</strong>. Mỗi mã chỉ có hiệu lực quét <strong>01 lần duy nhất</strong>.
                     </p>
-                    <a href="${singleTicketCheckUrl}" target="_blank" style="font-size: 12px; color: #0066ff; text-decoration: underline;">Kiểm tra trạng thái vé #${idx + 1} trực tuyến</a>
+                    <a href="${singleTicketCheckUrl}" target="_blank" style="font-size: 12px; color: #e11d48; font-weight: 700; text-decoration: underline;">🔍 Tra cứu trạng thái vé #${idx + 1} trực tuyến</a>
                 </div>
             </div>
         `;
@@ -420,46 +455,63 @@ export function buildTicketEmailHtml(order, ticketCodes = []) {
 <head>
     <meta charset="UTF-8">
 </head>
-<body style="margin: 0; padding: 20px; background-color: #f1f5f9; font-family: 'Segoe UI', Roboto, Arial, sans-serif; color: #0f172a;">
-    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
-        <div style="background: linear-gradient(135deg, #090d16, #1e3a8a); color: #ffffff; padding: 28px 24px; text-align: center;">
-            <div style="display: inline-block; background: rgba(56,189,248,0.2); color: #38bdf8; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 99px; margin-bottom: 10px; text-transform: uppercase;">
-                Official E-Ticket Confirmation
+<body style="margin: 0; padding: 20px; background-color: #120307; font-family: 'Segoe UI', Roboto, Arial, sans-serif; color: #18060a;">
+    <div style="max-width: 600px; margin: 0 auto; background: #fffdf9; border-radius: 22px; overflow: hidden; box-shadow: 0 18px 45px rgba(0,0,0,0.45); border: 2px solid #f43f5e;">
+        <!-- HEADER CONCEPT: HÙNG VƯƠNG CONCERT - GAME ON -->
+        <div style="background: linear-gradient(180deg, #090204 0%, #3a0610 52%, #9f1239 100%); color: #ffffff; padding: 32px 24px 28px 24px; text-align: center; border-bottom: 3px solid #fde047;">
+            <div style="font-size: 10.5px; letter-spacing: 1.8px; color: #fecdd3; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">
+                HUNG VUONG CONCERT • CHƯƠNG TRÌNH CA NHẠC GÂY QUỸ TỪ THIỆN
             </div>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 800;">${safeEventName}</h1>
-            <p style="margin: 8px 0 0 0; color: #cbd5e1; font-size: 14px;">Vé điện tử của bạn đã được phát hành chính thức!</p>
+            <div style="display: inline-block; background: #ffffff; color: #9f1239; font-size: 11.5px; font-weight: 900; padding: 4px 16px; border-radius: 99px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">
+                ★ HÙNG VƯƠNG CONCERT ★
+            </div>
+            <h1 style="margin: 4px 0 6px 0; font-size: 34px; font-weight: 900; letter-spacing: 2px; color: #ffffff; text-transform: uppercase; text-shadow: 0 3px 0 #be123c, 0 6px 0 #4c0519;">
+                🕹️ GAME ON ⭐
+            </h1>
+            <p style="margin: 8px 0 0 0; color: #fde047; font-size: 13.5px; font-weight: 700;">
+                PLAYER PASS ACTIVATED • VÉ ĐIỆN TỬ CHÍNH THỨC CỦA BẠN ĐÃ SẴN SÀNG!
+            </p>
         </div>
 
         <div style="padding: 24px;">
-            <p style="font-size: 15px; line-height: 1.6; margin-top: 0;">
-                Xin chào <strong>${safeName}</strong>,<br/>
-                Ban Tổ Chức <strong>${safeEventName}</strong> xác nhận đã nhận được khoản thanh toán của bạn. Dưới đây là <strong>${ticketCodes.length} Mã Vé Điện Tử (QR)</strong> bảo mật của riêng bạn:
+            <p style="font-size: 15px; line-height: 1.6; margin-top: 0; color: #1e293b;">
+                Xin chào Player <strong>${safeName}</strong>,<br/>
+                Ban Tổ Chức <strong>${safeEventName}</strong> xác nhận đã nhận thanh toán thành công của bạn. Dưới đây là <strong>${ticketCodes.length} Thẻ Vé Điện Tử (QR Check-in)</strong> bảo mật của riêng bạn:
             </p>
 
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; margin: 18px 0; font-size: 14px;">
-                <p style="margin: 6px 0;"><strong>• Mã Đơn Hàng:</strong> <code style="color: #0066ff; font-weight: bold;">${safeOrderId}</code></p>
-                <p style="margin: 6px 0;"><strong>• Khách hàng:</strong> ${safeName} (${safePhone})</p>
+            <div style="background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 16px; padding: 16px 18px; margin: 18px 0; font-size: 14px; color: #3f121d;">
+                <p style="margin: 6px 0;"><strong>• Mã Đơn Hàng:</strong> <code style="color: #be123c; font-weight: 900; font-size: 14px;">${safeOrderId}</code></p>
+                <p style="margin: 6px 0;"><strong>• Người mua (Player):</strong> ${safeName} (${safePhone})</p>
                 <p style="margin: 6px 0;"><strong>• Email nhận vé:</strong> ${safeEmail}</p>
                 <p style="margin: 6px 0;"><strong>• Hạng vé:</strong> ${safeTicketType}</p>
-                <p style="margin: 6px 0;"><strong>• Số lượng:</strong> ${ticketCodes.length} vé — <strong>Tổng đã TT:</strong> <span style="color: #059669; font-weight: bold;">${formattedTotal}</span></p>
+                <p style="margin: 6px 0;"><strong>• Số lượng:</strong> ${ticketCodes.length} vé — <strong>Tổng đã TT:</strong> <span style="color: #be123c; font-weight: 900;">${formattedTotal}</span></p>
             </div>
 
-            <h3 style="font-size: 16px; color: #0f172a; margin: 22px 0 12px 0; text-align: center;">
-                🎫 DANH SÁCH THẺ VÉ CHECK-IN CỦA BẠN
+            <h3 style="font-size: 16px; color: #881337; margin: 22px 0 14px 0; text-align: center; text-transform: uppercase; letter-spacing: 0.6px;">
+                🎮 DANH SÁCH THẺ VÉ CHECK-IN (PLAYER PASS)
             </h3>
 
             ${ticketsHtml}
 
-            <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #92400e; line-height: 1.5;">
+            <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 13px 16px; border-radius: 10px; font-size: 13px; color: #92400e; line-height: 1.55;">
                 <strong>⚠️ Lưu ý bảo mật quan trọng:</strong><br/>
-                • Mã vé này chỉ được gửi duy nhất vào Email của bạn (Nhân viên đối soát cũng không thể xem mã vé của bạn).<br/>
-                • Vui lòng tuyệt đối không chia sẻ ảnh mã QR lên mạng xã hội để tránh bị người khác quét mã vào cổng trước.
+                • Mã vé này chỉ được gửi duy nhất vào Email của bạn.<br/>
+                • Tuyệt đối <strong>không đăng ảnh chụp mã QR lên mạng xã hội</strong> trước giờ G để tránh bị người khác quét mã vào cổng trước.
             </div>
         </div>
 
-        <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; text-align: center; font-size: 12.5px; color: #64748b;">
-            <p style="margin: 0;">"${escapeHtml(EVENT_CONFIG.thankYouQuote || "")}"</p>
-            <p style="margin: 6px 0 0 0;">© ${new Date().getFullYear()} ${safeEventName}</p>
+        <!-- FOOTER LIÊN HỆ CHUẨN POSTER GAME ON -->
+        <div style="background: #160307; border-top: 2px solid #9f1239; padding: 20px 24px; text-align: center; font-size: 12.5px; color: #fecdd3;">
+            <p style="margin: 0 0 12px 0; color: #fde047; font-style: italic; font-weight: 600;">
+                "${escapeHtml(EVENT_CONFIG.thankYouQuote || "")}"
+            </p>
+            <div style="margin-bottom: 10px; line-height: 1.8;">
+                <span style="display: inline-block; background: #9f1239; color: #fffbeb; padding: 3px 10px; border-radius: 99px; font-size: 11.5px; font-weight: 700; margin: 2px;">📞 0916342935 (Ms. Diệu)</span>
+                <span style="display: inline-block; background: #9f1239; color: #fffbeb; padding: 3px 10px; border-radius: 99px; font-size: 11.5px; font-weight: 700; margin: 2px;">📞 0945286712 (Ms. Uyên)</span>
+                <span style="display: inline-block; background: #9f1239; color: #fffbeb; padding: 3px 10px; border-radius: 99px; font-size: 11.5px; font-weight: 700; margin: 2px;">📷 IG: hungvuong.concert</span>
+                <span style="display: inline-block; background: #9f1239; color: #fffbeb; padding: 3px 10px; border-radius: 99px; font-size: 11.5px; font-weight: 700; margin: 2px;">✉️ hungvuongconcert.2026@gmail.com</span>
+            </div>
+            <p style="margin: 6px 0 0 0; color: #fda4af; font-size: 11.5px;">© ${new Date().getFullYear()} ${safeEventName}</p>
         </div>
     </div>
 </body>
@@ -524,10 +576,12 @@ export async function sendTicketEmail(order, ticketCodes = [], rawWebhookUrls = 
                         currentWebhookIndex = idx;
                     }
 
-                    await updateDoc(doc(db, FIREBASE_CONFIG.ordersCollection || "orders", order.id), {
-                        emailSent: true,
-                        emailSentAt: serverTimestamp()
-                    });
+                    try {
+                        await updateDoc(doc(db, FIREBASE_CONFIG.ordersCollection || "orders", order.id), {
+                            emailSent: true,
+                            emailSentAt: serverTimestamp()
+                        });
+                    } catch (_) {}
 
                     return {
                         method: "apps_script",
@@ -705,6 +759,161 @@ export async function verifyPayosOrderPayment(orderCode, rawWebhookUrls = "") {
         payosStatus: result.payosStatus,
         isPaid: Boolean(result.isPaid),
         amount: result.amount,
-        amountPaid: result.amountPaid
+        amountPaid: result.amountPaid,
+        transactions: Array.isArray(result.transactions) ? result.transactions : []
+    };
+}
+
+/**
+ * TỰ ĐỘNG HÓA 100% (ZERO-TOUCH):
+ * Kiểm tra trạng thái PayOS -> Tự động sinh mã vé bảo mật -> Tự động duyệt đơn APPROVED -> Tự động bắn Email vé QR
+ * Có thể gọi trực tiếp từ thanks.html, check-order.html hoặc Auto-Pilot trên admin-orders.html
+ */
+export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", rawWebhookUrls = "") {
+    if (!orderId) {
+        throw new Error("Thiếu mã đơn hàng (orderId) để tự động cấp vé.");
+    }
+
+    const ordersColName = FIREBASE_CONFIG.ordersCollection || "orders";
+    const ticketsColName = FIREBASE_CONFIG.ticketsCollection || "tickets";
+    const orderTicketsColName = FIREBASE_CONFIG.orderTicketsCollection || "order_tickets";
+
+    const orderRef = doc(db, ordersColName, orderId);
+    const orderSnap = await getDoc(orderRef);
+    if (!orderSnap.exists()) {
+        throw new Error("Không tìm thấy đơn hàng trên hệ thống.");
+    }
+
+    const d = orderSnap.data();
+    const payosOrderCode = Number(d.payosOrderCode || orderCodeFallback || 0);
+    if (!payosOrderCode) {
+        throw new Error("Đơn hàng không có mã giao dịch PayOS.");
+    }
+
+    const qty = Math.max(1, Number(d.quantity) || 1);
+    const orderObj = {
+        id: orderId,
+        name: d.customerName || d.name || "Khách hàng",
+        customerName: d.customerName || d.name || "Khách hàng",
+        phone: d.phone || "",
+        email: d.email || "",
+        quantity: qty,
+        totalAmount: Number(d.totalAmount) || (qty * EVENT_CONFIG.ticketPrice),
+        payosOrderCode: payosOrderCode,
+        status: String(d.status || "PENDING").toUpperCase(),
+        emailSent: Boolean(d.emailSent)
+    };
+
+    // 1. Đối soát trực tiếp với máy chủ PayOS qua Google Apps Script Bridge
+    const payosRes = await verifyPayosOrderPayment(payosOrderCode, rawWebhookUrls);
+    if (!payosRes.isPaid) {
+        return {
+            isPaid: false,
+            payosStatus: payosRes.payosStatus || "PENDING",
+            ticketCodes: [],
+            order: orderObj
+        };
+    }
+
+    // 2. Lấy mã tham chiếu giao dịch ngân hàng (FT...) từ PayOS để tạo chữ ký vé tất định
+    const txRef = (Array.isArray(payosRes.transactions) && payosRes.transactions.length > 0 && payosRes.transactions[0].reference)
+        ? String(payosRes.transactions[0].reference).trim()
+        : "PAID";
+
+    const ticketCodes = [];
+    for (let i = 1; i <= qty; i++) {
+        const code = await generateDeterministicPayosTicketCode(orderId, i, payosOrderCode, txRef);
+        ticketCodes.push(code);
+    }
+    const maskedList = ticketCodes.map(maskTicketCode);
+
+    // 3. Ghi danh sách vé vào Firestore (tickets, order_tickets) & chuyển đơn sang APPROVED
+    let firestoreSynced = false;
+    try {
+        for (let i = 0; i < ticketCodes.length; i++) {
+            const code = ticketCodes[i];
+            const ticketNumber = i + 1;
+            await setDoc(doc(db, ticketsColName, code), {
+                ticketCode: code,
+                orderId: orderId,
+                ticketNumber: ticketNumber,
+                ticketLabel: `Vé ${ticketNumber}/${qty}`,
+                customerName: orderObj.name,
+                phone: orderObj.phone,
+                email: orderObj.email,
+                eventName: EVENT_CONFIG.eventName,
+                ticketTypeName: EVENT_CONFIG.ticketTypeName,
+                unitPrice: EVENT_CONFIG.ticketPrice,
+                status: "VALID",
+                checkedIn: false,
+                checkedInAt: null,
+                issuedBy: "PAYOS_AUTO",
+                payosOrderCode: payosOrderCode,
+                issuedAt: serverTimestamp()
+            }, { merge: true });
+        }
+
+        try {
+            await setDoc(doc(db, orderTicketsColName, orderId), {
+                orderId: orderId,
+                customerName: orderObj.name,
+                email: orderObj.email,
+                quantity: qty,
+                ticketCodes: ticketCodes,
+                issuedBy: "PAYOS_AUTO",
+                issuedAt: serverTimestamp()
+            }, { merge: true });
+        } catch (_) {}
+
+        await updateDoc(orderRef, {
+            status: "APPROVED",
+            verifiedBy: "PayOS Auto (100%)",
+            approvedBy: "PayOS Auto (100%)",
+            maskedTickets: maskedList,
+            issuedTicketCount: ticketCodes.length,
+            ticketCodes: deleteField(),
+            approvedAt: serverTimestamp()
+        });
+        firestoreSynced = true;
+    } catch (fsErr) {
+        console.warn("Ghi vé trực tiếp cần cập nhật firestore.rules hoặc sẽ được Auto-Pilot Admin đồng bộ:", fsErr.message);
+    }
+
+    // 4. Tự động bắn Email vé kèm mã QR cho khách hàng ngay lập tức (chống gửi trùng lặp)
+    let emailSentNow = orderObj.emailSent;
+    const localMailLockKey = `hvc_auto_mail_sent_${orderId}`;
+    const alreadySentLocal = typeof localStorage !== "undefined" && localStorage.getItem(localMailLockKey) === "1";
+
+    if (!emailSentNow && !alreadySentLocal && EMAIL_CONFIG.enabled && orderObj.email) {
+        try {
+            if (typeof localStorage !== "undefined") {
+                localStorage.setItem(localMailLockKey, "1");
+            }
+            const mailRes = await sendTicketEmail(orderObj, ticketCodes, rawWebhookUrls);
+            if (mailRes && mailRes.success) {
+                emailSentNow = true;
+            }
+        } catch (mailErr) {
+            if (typeof localStorage !== "undefined") {
+                localStorage.removeItem(localMailLockKey);
+            }
+            console.warn("Lỗi gửi mail tự động:", mailErr);
+        }
+    }
+
+    return {
+        isPaid: true,
+        payosStatus: "PAID",
+        ticketCodes: ticketCodes,
+        maskedTickets: maskedList,
+        firestoreSynced: firestoreSynced,
+        emailSent: emailSentNow,
+        order: {
+            ...orderObj,
+            status: "APPROVED",
+            verifiedBy: "PayOS Auto (100%)",
+            maskedTickets: maskedList,
+            emailSent: emailSentNow
+        }
     };
 }

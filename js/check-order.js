@@ -9,7 +9,7 @@
 
 import { EVENT_CONFIG, FIREBASE_CONFIG } from "./config.js";
 import { db, doc, getDoc, escapeHtml } from "./firebase-core.js";
-import { getTicketQrImageUrl } from "./ticket-service.js";
+import { getTicketQrImageUrl, autoFulfillPayosOrder } from "./ticket-service.js";
 
 const output = document.querySelector('.output');
 const searchInput = document.getElementById('searchInput');
@@ -59,7 +59,7 @@ function renderOrderCard(orderId, data) {
 
     return `
         <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 18px; color: #0f172a;">
-            <h3 style="font-size: 15px; color: #0066ff; margin-bottom: 10px;">MÃ ĐƠN: ${safeId}</h3>
+            <h3 style="font-size: 15px; color: #e11d48; margin-bottom: 10px;">MÃ ĐƠN: ${safeId}</h3>
             <p style="margin: 6px 0; font-size: 14px;"><strong>Sự kiện:</strong> ${escapeHtml(EVENT_CONFIG.eventName)}</p>
             <p style="margin: 6px 0; font-size: 14px;"><strong>Họ và Tên:</strong> ${safeName}</p>
             <p style="margin: 6px 0; font-size: 14px;"><strong>Số điện thoại:</strong> ${safePhone}</p>
@@ -91,8 +91,8 @@ function renderSingleTicketCard(ticketCode, data) {
     }
 
     return `
-        <div style="background: #f8fafc; border: 2px solid #0066ff; border-radius: 14px; padding: 18px; color: #0f172a;">
-            <h3 style="font-size: 16px; color: #0066ff; margin-bottom: 10px;">🎟️ MÃ VÉ: ${safeCode}</h3>
+        <div style="background: #f8fafc; border: 2px solid #e11d48; border-radius: 14px; padding: 18px; color: #0f172a;">
+            <h3 style="font-size: 16px; color: #e11d48; margin-bottom: 10px;">🎟️ MÃ VÉ: ${safeCode}</h3>
             <p style="margin: 6px 0; font-size: 14px;"><strong>Sự kiện:</strong> ${escapeHtml(data.eventName || EVENT_CONFIG.eventName)}</p>
             <p style="margin: 6px 0; font-size: 14px;"><strong>Loại vé:</strong> ${safeLabel}</p>
             <p style="margin: 6px 0; font-size: 14px;"><strong>Khách hàng:</strong> ${safeName} (${safePhone})</p>
@@ -133,7 +133,21 @@ async function lookupOrder(rawKeyword) {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            output.innerHTML = renderOrderCard(docSnap.id, docSnap.data());
+            let orderData = docSnap.data();
+            const rawSt = String(orderData.status || '').toUpperCase();
+            if (rawSt !== 'APPROVED' && orderData.payosOrderCode) {
+                try {
+                    const autoRes = await autoFulfillPayosOrder(docSnap.id, orderData.payosOrderCode);
+                    if (autoRes && autoRes.isPaid) {
+                        orderData = {
+                            ...orderData,
+                            status: 'APPROVED',
+                            maskedTickets: autoRes.maskedTickets || orderData.maskedTickets || []
+                        };
+                    }
+                } catch (_) {}
+            }
+            output.innerHTML = renderOrderCard(docSnap.id, orderData);
             return;
         }
 

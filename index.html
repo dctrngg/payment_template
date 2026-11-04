@@ -4,41 +4,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="page-title">Đặt Vé & Thanh Toán Trực Tuyến</title>
-    <link rel="stylesheet" href="style/checkout.css?v=1.0">
+    <title id="page-title">Hùng Vương Concert: GAME ON — Đặt Vé Trực Tuyến</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style/checkout.css?v=2.0">
 </head>
 
 <body>
     <div class="page-bg-overlay"></div>
+    <div class="city-skyline-decor" aria-hidden="true"></div>
 
     <!-- Thanh điều hướng nhanh -->
     <nav class="top-nav-bar">
         <a href="#" id="cfg-landing-link-brand" class="top-nav-brand">
             <span class="live-dot"></span>
-            <span id="cfg-nav-title">CONCERT E-TICKET</span>
+            <span id="cfg-nav-title">HÙNG VƯƠNG CONCERT: GAME ON</span>
         </a>
         <div class="top-nav-links">
-            <a href="#" id="cfg-landing-link" class="nav-pill">✨ Giới Thiệu Sự Kiện</a>
-            <a href="check-order.html" class="nav-pill">🔍 Tra Cứu Đơn Vé</a>
+            <a href="#" id="cfg-landing-link" class="nav-pill">⭐ Giới Thiệu Sự Kiện</a>
+            <a href="check-order.html" class="nav-pill">🕹️ Tra Cứu Vé (Player Pass)</a>
         </div>
     </nav>
 
     <div class="container">
-        <!-- CỘT BÊN TRÁI: THÔNG TIN SỰ KIỆN & MÃ VIETQR ĐỘNG (Tự động render từ config.js) -->
+        <!-- CỘT BÊN TRÁI: KEY VISUAL "GAME ON" & TÓM TẮT THANH TOÁN PAYOS -->
         <div class="data-display">
-            <div class="badge-row">
-                <span class="brand-badge" id="cfg-event-badge">Official E-Ticket</span>
-                <span class="urgency-badge" id="cfg-status-badge">⚡ Cổng vé trực tuyến đang mở</span>
+            <!-- Banner Concept GAME ON chính thức -->
+            <div class="hero-poster-frame">
+                <img src="style/game-on-banner.jpg" alt="Hùng Vương Concert: GAME ON" class="hero-poster-img" />
+                <div class="hero-poster-tag">★ STAGE 2026 • PRESS START ★</div>
             </div>
 
-            <h2 id="cfg-event-name">Tên Sự Kiện</h2>
-            <p class="amount"><strong id="cfg-unit-price-top">320.000 VNĐ</strong> <span>/ vé tiêu chuẩn</span></p>
+            <div class="badge-row">
+                <span class="brand-badge" id="cfg-event-badge">🎮 Ca Nhạc Gây Quỹ Từ Thiện</span>
+                <span class="urgency-badge" id="cfg-status-badge">🕹️ PRESS START • Cổng vé đang mở</span>
+            </div>
+
+            <h2 id="cfg-event-name">Hùng Vương Concert: GAME ON</h2>
+            <p class="amount"><strong id="cfg-unit-price-top">320.000 VNĐ</strong> <span>/ vé Player Pass tiêu chuẩn</span></p>
 
             <!-- Tóm tắt chi phí -->
             <div class="summary-card">
                 <div class="summary-row">
-                    <span>Loại vé</span>
-                    <strong style="color: #fff;" id="cfg-ticket-type">Vé Điện Tử (E-Ticket QR)</strong>
+                    <span>Hạng vé</span>
+                    <strong style="color: #fff;" id="cfg-ticket-type">Vé Điện Tử (Player Pass QR)</strong>
                 </div>
                 <div class="summary-row">
                     <span>Đơn giá</span>
@@ -46,7 +56,7 @@
                 </div>
                 <div class="summary-row">
                     <span>Số lượng vé</span>
-                    <strong id="quantity-display" style="color: #38bdf8;">1 vé</strong>
+                    <strong id="quantity-display" style="color: #fde047;">1 vé</strong>
                 </div>
                 <div class="summary-row discount-row" id="discount-row" style="display: none;">
                     <span id="discount-label">Ưu đãi / Voucher</span>
@@ -61,12 +71,7 @@
             <!-- Khối Hướng dẫn Cổng Thanh Toán Tự Động PayOS -->
             <div class="banking-detail">
                 <div class="banking-title">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
+                    <span>🕹️</span>
                     Cổng Thanh Toán VietQR Tự Động (PayOS)
                 </div>
 
@@ -76,8 +81,8 @@
                         <span class="bank-row-value highlight-bank">VietQR Động (Napas 247 / PayOS)</span>
                     </div>
                     <div class="bank-row">
-                        <span class="bank-row-label">Xác nhận giao dịch:</span>
-                        <span class="bank-row-value" style="color: #34d399; font-weight: 700;">⚡ Tự động 100% (Không cần chụp Bill)</span>
+                        <span class="bank-row-label">Cấp vé & Gửi Mail:</span>
+                        <span class="bank-row-value" style="color: #fde047; font-weight: 800;">⚡ Tự động 100% sau 2 giây</span>
                     </div>
                     <div class="bank-row">
                         <span class="bank-row-label">Số tiền cần TT:</span>
@@ -93,12 +98,20 @@
                     </div>
                 </div>
 
-                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 14px; margin-top: 12px; font-size: 13px; color: #e2e8f0; line-height: 1.6;">
-                    <strong style="color: #6ee7b7; display: block; margin-bottom: 4px;">✨ Quy trình đặt vé tự động 3 bước:</strong>
-                    1. Điền thông tin người mua và chọn số lượng vé bên phải.<br/>
-                    2. Nhấn nút <strong>"Tiếp Tục & Quét Mã Thanh Toán"</strong> để mở mã QR định danh riêng cho đơn của bạn.<br/>
-                    3. Quét mã bằng bất kỳ App Ngân hàng nào — hệ thống tự động xác nhận ngay sau 2 giây!
+                <div class="arcade-guide-box">
+                    <strong>★ NHIỆM VỤ NHẬN VÉ (3 BƯỚC TỰ ĐỘNG):</strong>
+                    1. Nhập thông tin Player (Người mua) & chọn số lượng vé.<br/>
+                    2. Nhấn <strong>"PRESS START • QUÉT MÃ PAYOS"</strong> để mở mã VietQR định danh.<br/>
+                    3. Quét mã trên App Ngân hàng — Hệ thống <strong>tự động duyệt & bắn thẻ vé QR về Email ngay lập tức!</strong>
                 </div>
+            </div>
+
+            <!-- Liên hệ BTC chuẩn theo Poster GAME ON -->
+            <div class="poster-contacts">
+                <span class="contact-pill">📞 0916342935 (Ms. Diệu)</span>
+                <span class="contact-pill">📞 0945286712 (Ms. Uyên)</span>
+                <span class="contact-pill">📷 IG: hungvuong.concert</span>
+                <span class="contact-pill">✉️ hungvuongconcert.2026@gmail.com</span>
             </div>
 
             <!-- Điều khoản & Ghi chú -->
@@ -109,11 +122,12 @@
         <div class="form-section">
             <div class="form-header">
                 <div>
+                    <div class="pixel-sub-tag">PLAYER REGISTRATION // STAGE 01</div>
                     <h3>Thông Tin Người Mua Vé</h3>
-                    <p>Điền thông tin bên dưới để nhận vé điện tử và mở cổng thanh toán QR tự động.</p>
+                    <p>Điền chính xác địa chỉ Email để hệ thống tự động gửi thẻ vé QR ngay khi hoàn tất thanh toán.</p>
                 </div>
                 <div class="draft-badge" id="draft-badge">
-                    <span>✓ Đã lưu nháp tự động</span>
+                    <span>✓ Đã lưu nháp</span>
                     <button type="button" class="draft-clear-btn" id="btn-clear-draft">Xóa</button>
                 </div>
             </div>
@@ -187,7 +201,7 @@
                     <div class="form-group">
                         <label for="voucher-input" class="form-label">Mã giảm giá / Voucher</label>
                         <div class="voucher-box">
-                            <input type="text" class="form-control" id="voucher-input" placeholder="Nhập mã (nếu có)"
+                            <input type="text" class="form-control" id="voucher-input" placeholder="Nhập mã (VD: GAMEON, CHV)"
                                 style="text-transform: uppercase;" />
                             <button type="button" class="btn-apply-voucher" id="btn-apply-voucher">Áp dụng</button>
                         </div>
@@ -197,11 +211,11 @@
 
                 <div class="checkbox-box">
                     <input type="checkbox" id="terms-agree" required>
-                    <label for="terms-agree">Tôi xác nhận thông tin Email nhận vé là chính xác và đồng ý với các quy định tham gia sự kiện của Ban Tổ Chức.</label>
+                    <label for="terms-agree">Tôi xác nhận thông tin Email nhận vé là chính xác và đồng ý với các quy định tham gia sự kiện <strong>Hùng Vương Concert: GAME ON</strong>.</label>
                 </div>
 
                 <button type="submit" class="pay-btn" id="submit-btn">
-                    <span>⚡ Tiếp Tục & Quét Mã Thanh Toán Tự Động (PayOS)</span>
+                    <span>🕹️ PRESS START • QUÉT MÃ THANH TOÁN (PAYOS)</span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                         stroke-width="2.5">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -224,10 +238,10 @@
 
     <div class="popup-overlay" id="confirmation-popup">
         <div class="popup-content">
-            <h2>Xác Nhận Đặt Vé</h2>
+            <h2>🎮 Xác Nhận Đặt Vé GAME ON</h2>
             <p id="popup-cf-message"></p>
             <div class="popup-actions">
-                <button class="popup-confirm-btn" id="popup-confirm-btn">Xác nhận gửi đơn</button>
+                <button class="popup-confirm-btn" id="popup-confirm-btn">🕹️ Mở QR Thanh Toán</button>
                 <button id="popup-cf-close" class="popup-close-btn">Kiểm tra lại</button>
             </div>
         </div>
