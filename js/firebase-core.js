@@ -19,7 +19,8 @@ import {
     serverTimestamp,
     query,
     where,
-    getDocs
+    getDocs,
+onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import {
     getAuth,
@@ -75,6 +76,7 @@ export {
     query,
     where,
     getDocs,
+    onSnapshot,
     signInWithEmailAndPassword,
     signOut,
     onAuthStateChanged,

@@ -959,6 +959,7 @@
             auth,
             collection,
             getDocs,
+            onSnapshot,
             doc,
             deleteDoc,
             signInWithEmailAndPassword,
@@ -1255,68 +1256,98 @@
             await loadOrders();
         }
 
+        let unsubscribeOrdersListener = null;
+        let isInitialOrdersLoaded = false;
+
         async function loadOrders() {
-            tbody.innerHTML = `<tr><td colspan="8" class="status-msg">Đang đồng bộ dữ liệu từ Firestore...</td></tr>`;
-            try {
-                realTicketVaultMap = {};
-                if (isSuperAdmin) {
-                    try {
-                        realTicketVaultMap = await loadAllOrderTicketsForSuperAdmin();
-                    } catch (e) {
-                        console.warn('Không thể tải order_tickets:', e);
-                    }
+            if (unsubscribeOrdersListener) {
+                unsubscribeOrdersListener();
+                unsubscribeOrdersListener = null;
+            }
+
+            tbody.innerHTML = `<tr><td colspan="8" class="status-msg">🔄 Đang kết nối Real-time với Firestore...</td></tr>`;
+
+            if (isSuperAdmin) {
+                try {
+                    realTicketVaultMap = await loadAllOrderTicketsForSuperAdmin();
+                } catch (e) {
+                    console.warn('Không thể tải order_tickets:', e);
                 }
+            }
 
-                const snap = await getDocs(collection(db, FIREBASE_CONFIG.ordersCollection));
-                allOrders = [];
-                snap.forEach((docSnap) => {
-                    const d = docSnap.data();
-                    const qty = Number(d.quantity) || 0;
-                    const amount = Number(d.totalAmount) || (qty * EVENT_CONFIG.ticketPrice);
-                    const rawTime = (d.createdAt && d.createdAt.toMillis) ? d.createdAt.toMillis() : ((d.timestamp && d.timestamp.toMillis) ? d.timestamp.toMillis() : 0);
-
-                    const realCodes = isSuperAdmin
-                        ? (realTicketVaultMap[docSnap.id] || (Array.isArray(d.ticketCodes) ? d.ticketCodes : []))
-                        : [];
-
-                    const rawImg = d.billImageBase64 || d.billImage || d.imageUrl || d.image || d.bill || d.billUrl || d.receiptUrl || '';
-                    let validImg = '';
-                    if (rawImg && rawImg.startsWith('data:image/')) {
-                        validImg = rawImg;
-                    } else if (rawImg && rawImg.startsWith('http') && !rawImg.includes('local_compressed')) {
-                        validImg = rawImg;
-                    } else if (d.billImageBase64 && d.billImageBase64.startsWith('data:image/')) {
-                        validImg = d.billImageBase64;
-                    } else if (rawImg) {
-                        validImg = rawImg;
+            try {
+                const ordersCol = collection(db, FIREBASE_CONFIG.ordersCollection);
+                unsubscribeOrdersListener = onSnapshot(ordersCol, (snapshot) => {
+                    // Thông báo toast nhẹ khi có đơn hàng mới xuất hiện sau lần tải đầu
+                    if (isInitialOrdersLoaded) {
+                        snapshot.docChanges().forEach((change) => {
+                            if (change.type === 'added') {
+                                const newDoc = change.doc.data();
+                                const newName = newDoc.customerName || newDoc.name || 'Khách hàng';
+                                showCopyToast(`🔔 Vừa nhận 1 đơn mới từ ${newName}!`);
+                            }
+                        });
                     }
 
-                    allOrders.push({
-                        id: docSnap.id,
-                        name: d.customerName || d.name || '',
-                        phone: d.phone || '',
-                        email: d.email || '',
-                        quantity: qty,
-                        voucherCode: d.voucherCode || '',
-                        discountAmount: Number(d.discountAmount) || 0,
-                        totalAmount: amount,
-                        transferMemo: d.transferMemo || '',
-                        payosOrderCode: d.payosOrderCode ? String(d.payosOrderCode) : '',
-                        paymentMethod: d.paymentMethod || '',
-                        imageUrl: validImg,
-                        status: (d.status || 'pending').toUpperCase(),
-                        verifiedBy: d.verifiedBy || '',
-                        maskedTickets: Array.isArray(d.maskedTickets) ? d.maskedTickets : [],
-                        realTicketCodes: realCodes,
-                        emailSent: Boolean(d.emailSent),
-                        createdAtText: formatDate(d.createdAt || d.timestamp),
-                        rawTime: rawTime
-                    });
-                });
+                    allOrders = [];
+                    snapshot.forEach((docSnap) => {
+                        const d = docSnap.data();
+                        const qty = Number(d.quantity) || 0;
+                        const amount = Number(d.totalAmount) || (qty * EVENT_CONFIG.ticketPrice);
+                        const rawTime = (d.createdAt && d.createdAt.toMillis) ? d.createdAt.toMillis() : ((d.timestamp && d.timestamp.toMillis) ? d.timestamp.toMillis() : 0);
 
-                allOrders.sort((a, b) => b.rawTime - a.rawTime);
-                applyFilters();
-                runPayosAutoPilot();
+                        const realCodes = isSuperAdmin
+                            ? (realTicketVaultMap[docSnap.id] || (Array.isArray(d.ticketCodes) ? d.ticketCodes : []))
+                            : [];
+
+                        const rawImg = d.billImageBase64 || d.billImage || d.imageUrl || d.image || d.bill || d.billUrl || d.receiptUrl || '';
+                        let validImg = '';
+                        if (rawImg && rawImg.startsWith('data:image/')) {
+                            validImg = rawImg;
+                        } else if (rawImg && rawImg.startsWith('http') && !rawImg.includes('local_compressed')) {
+                            validImg = rawImg;
+                        } else if (d.billImageBase64 && d.billImageBase64.startsWith('data:image/')) {
+                            validImg = d.billImageBase64;
+                        } else if (rawImg) {
+                            validImg = rawImg;
+                        }
+
+                        allOrders.push({
+                            id: docSnap.id,
+                            name: d.customerName || d.name || '',
+                            phone: d.phone || '',
+                            email: d.email || '',
+                            quantity: qty,
+                            voucherCode: d.voucherCode || '',
+                            discountAmount: Number(d.discountAmount) || 0,
+                            totalAmount: amount,
+                            transferMemo: d.transferMemo || '',
+                            payosOrderCode: d.payosOrderCode ? String(d.payosOrderCode) : '',
+                            paymentMethod: d.paymentMethod || '',
+                            imageUrl: validImg,
+                            status: (d.status || 'pending').toUpperCase(),
+                            verifiedBy: d.verifiedBy || '',
+                            maskedTickets: Array.isArray(d.maskedTickets) ? d.maskedTickets : [],
+                            realTicketCodes: realCodes,
+                            emailSent: Boolean(d.emailSent),
+                            createdAtText: formatDate(d.createdAt || d.timestamp),
+                            rawTime: rawTime
+                        });
+                    });
+
+                    allOrders.sort((a, b) => b.rawTime - a.rawTime);
+                    applyFilters();
+                    runPayosAutoPilot();
+                    isInitialOrdersLoaded = true;
+                }, (error) => {
+                    console.error("Lỗi Real-time listener:", error);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="status-msg" style="color: #dc2626;">
+                                Lỗi kết nối Real-time: <strong>${escapeHtml(error.message)}</strong>
+                            </td>
+                        </tr>`;
+                });
             } catch (error) {
                 tbody.innerHTML = `
                     <tr>
@@ -1946,6 +1977,10 @@
         });
 
         btnLogout.addEventListener('click', async () => {
+            if (unsubscribeOrdersListener) {
+                unsubscribeOrdersListener();
+                unsubscribeOrdersListener = null;
+            }
             await signOut(auth);
         });
 
