@@ -852,6 +852,9 @@
                 <button type="button" class="filter-tab" data-status="PENDING">
                     Chưa thanh toán <span class="count" id="cnt-pending">0</span>
                 </button>
+                <button type="button" class="filter-tab" data-status="BILL_VERIFIED" style="display: none;">
+                    Đã soi Bill <span class="count" id="cnt-verified">0</span>
+                </button>
             </div>
 
             <!-- Giữ select ẩn để tương thích hoàn toàn với logic lọc (Mặc định: APPROVED) -->
@@ -1333,15 +1336,20 @@
             const allVerified = allOrders.filter(i => i.status === 'BILL_VERIFIED').length;
             const allApproved = allOrders.filter(i => i.status === 'APPROVED').length;
 
-            document.getElementById('stat-total-orders').textContent = totalOrders;
-            document.getElementById('stat-total-tickets').textContent = totalTickets + ' vé';
-            document.getElementById('stat-total-revenue').textContent = formatCurrency(totalRevenue);
-            document.getElementById('stat-status-ratio').textContent = `${allPending} / ${allVerified} / ${allApproved}`;
+            const setTxt = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val;
+            };
 
-            document.getElementById('cnt-all').textContent = allOrders.length;
-            document.getElementById('cnt-pending').textContent = allPending;
-            document.getElementById('cnt-verified').textContent = allVerified;
-            document.getElementById('cnt-approved').textContent = allApproved;
+            setTxt('stat-total-orders', totalOrders);
+            setTxt('stat-total-tickets', totalTickets + ' vé');
+            setTxt('stat-total-revenue', formatCurrency(totalRevenue));
+            setTxt('stat-status-ratio', `${allPending} / ${allVerified} / ${allApproved}`);
+
+            setTxt('cnt-all', allOrders.length);
+            setTxt('cnt-pending', allPending);
+            setTxt('cnt-verified', allVerified);
+            setTxt('cnt-approved', allApproved);
 
             if (verifiedCountLabel) verifiedCountLabel.textContent = allVerified;
         }
