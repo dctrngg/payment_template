@@ -134,7 +134,7 @@ export function maskTicketCode(code) {
 }
 
 export function getTicketQrImageUrl(ticketCode, size = 220) {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&data=${encodeURIComponent(ticketCode)}`;
+    return `https://quickchart.io/qr?size=${size}&margin=2&text=${encodeURIComponent(ticketCode)}`;
 }
 
 /**
@@ -443,7 +443,7 @@ export function buildTicketEmailHtml(order, ticketCodes = []) {
                     <p style="font-size: 12.5px; color: #475569; margin: 12px 0 8px 0; line-height: 1.5;">
                         Xuất trình mã QR này tại cổng soát vé <strong>GAME ON</strong>. Mỗi mã chỉ có hiệu lực quét <strong>01 lần duy nhất</strong>.
                     </p>
-                    <a href="${singleTicketCheckUrl}" target="_blank" style="font-size: 12px; color: #e11d48; font-weight: 700; text-decoration: underline;">🔍 Tra cứu trạng thái vé #${idx + 1} trực tuyến</a>
+                    <div style="margin-top: 14px;"><a href="${singleTicketCheckUrl}" target="_blank" style="display: inline-block; background: #be123c; color: #ffffff; text-decoration: none; padding: 9px 18px; border-radius: 10px; font-size: 12.5px; font-weight: 800; letter-spacing: 0.3px; box-shadow: 0 4px 10px rgba(190, 18, 60, 0.25);">📱 Mở Vé & Tải QR Gốc Trên Web</a></div>
                 </div>
             </div>
         `;
@@ -494,9 +494,9 @@ export function buildTicketEmailHtml(order, ticketCodes = []) {
             ${ticketsHtml}
 
             <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 13px 16px; border-radius: 10px; font-size: 13px; color: #92400e; line-height: 1.55;">
-                <strong>⚠️ Lưu ý bảo mật quan trọng:</strong><br/>
-                • Mã vé này chỉ được gửi duy nhất vào Email của bạn.<br/>
-                • Tuyệt đối <strong>không đăng ảnh chụp mã QR lên mạng xã hội</strong> trước giờ G để tránh bị người khác quét mã vào cổng trước.
+                <strong>⚠️ Lưu ý bảo mật & hiển thị:</strong><br/>
+                • Mã vé này chỉ được gửi duy nhất vào Email của bạn. Tuyệt đối <strong>không đăng ảnh chụp mã QR lên mạng xã hội</strong> trước giờ G để tránh bị người khác quét mã vào cổng trước.<br/>
+                • <em>Nếu ứng dụng Gmail của bạn hiển thị thông báo "Hình ảnh bên ngoài không được hiển thị", vui lòng bấm <strong>"Hiển thị hình ảnh bên dưới"</strong> hoặc nhấn nút đỏ <strong>"Mở Vé & Tải QR Gốc Trên Web"</strong> ở trên.</em>
             </div>
         </div>
 

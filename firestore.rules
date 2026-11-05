@@ -45,21 +45,26 @@ service cloud.firestore {
     // 1. KIỂM TRA ĐƠN ĐẶT VÉ HỢP LỆ KHI KHÁCH MUA (CHỐNG SỬA GIÁ 0Đ)
     // =========================================================================
     function isValidOrderCreate(data) {
-      let ticketPrice = 320000;
       let qty = data.quantity;
-      let subtotal = qty * ticketPrice;
-
       let validQuantityAndStatus =
         qty is int && qty >= 1 && qty <= 5 &&
         (data.status == 'pending' || data.status == 'PENDING');
 
-      let validPricing =
-        data.totalAmount is int &&
-        (
-          data.totalAmount == subtotal ||
-          (data.voucherCode in ['HVCGAMEON', 'GAMEON', 'HVCUNFOLD', 'VIP10'] && data.totalAmount == (subtotal * 90) / 100) ||
-          (data.voucherCode == 'CHV' && data.totalAmount == subtotal - (qty * 20000))
-        );
+      // Hỗ trợ linh hoạt cả chế độ TEST (500đ, 1.000đ, 2.000đ) và CHÍNH THỨC (320.000đ)
+      let isTestPrice = (
+        data.totalAmount == qty * 500 ||
+        data.totalAmount == qty * 1000 ||
+        data.totalAmount == qty * 2000
+      );
+
+      let standardSubtotal = qty * 320000;
+      let isStandardPrice = (
+        data.totalAmount == standardSubtotal ||
+        (data.voucherCode in ['HVCGAMEON', 'GAMEON', 'HVCUNFOLD', 'VIP10'] && data.totalAmount == (standardSubtotal * 90) / 100) ||
+        (data.voucherCode == 'CHV' && data.totalAmount == standardSubtotal - (qty * 20000))
+      );
+
+      let validPricing = data.totalAmount is int && (isTestPrice || isStandardPrice);
 
       return validQuantityAndStatus && validPricing;
     }

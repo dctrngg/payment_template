@@ -13,7 +13,7 @@ export const EVENT_CONFIG = {
     eventBadge: "🎮 Ca Nhạc Gây Quỹ Từ Thiện",         // Nhãn góc trên
     statusBadge: "🕹️ PRESS START • Cổng vé đang mở",   // Nhãn trạng thái mở bán
     ticketTypeName: "Vé Điện Tử (Player Pass QR)",     // Tên hạng vé
-    ticketPrice: 320000,                               // Đơn giá 1 vé (VNĐ)
+    ticketPrice: 1000,                                // Đơn giá 1 vé (VNĐ - Chế độ TEST 1.000đ)
     maxQuantityPerOrder: 5,                            // Số vé tối đa mỗi lượt mua
     quickQuantities: [1, 2, 3, 5],                     // Các nút chọn nhanh số lượng vé
     landingPageUrl: "../landing.html",                 // Đường dẫn về trang giới thiệu sự kiện

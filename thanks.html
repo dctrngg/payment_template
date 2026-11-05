@@ -454,10 +454,11 @@
             autoTicketsList.innerHTML = ticketCodes.map((code, idx) => {
                 const safeCode = escapeHtml(code);
                 const qrUrl = getTicketQrImageUrl(code, 220);
+                const fallbackQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(code)}`;
                 return `
                     <div style="border: 2px solid #e11d48; border-radius: 16px; padding: 16px; text-align: center; background: #f8fafc;">
                         <div style="font-size: 12px; font-weight: 800; color: #9f1239; margin-bottom: 8px;">VÉ #${idx + 1}/${ticketCodes.length} — CHÍNH THỨC</div>
-                        <img src="${qrUrl}" alt="QR ${safeCode}" style="width: 165px; height: 165px; border-radius: 12px; border: 1px solid #cbd5e1; padding: 6px; background: #fff; margin-bottom: 10px;" />
+                        <img src="${qrUrl}" alt="QR ${safeCode}" onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${fallbackQrUrl}';}" style="width: 165px; height: 165px; border-radius: 12px; border: 1px solid #cbd5e1; padding: 6px; background: #fff; margin-bottom: 10px;" />
                         <div style="font-family: Consolas, monospace; font-size: 17px; font-weight: 800; color: #be123c; background: #fff1f2; border: 1.5px dashed #e11d48; padding: 6px 12px; border-radius: 8px; letter-spacing: 1px;">
                             ${safeCode}
                         </div>

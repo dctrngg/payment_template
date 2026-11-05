@@ -79,6 +79,7 @@ function renderSingleTicketCard(ticketCode, data) {
     const safePhone = escapeHtml(data.phone || '---');
     const safeLabel = escapeHtml(data.ticketLabel || 'Vé sự kiện');
     const qrUrl = getTicketQrImageUrl(ticketCode, 200);
+    const fallbackQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(ticketCode)}`;
 
     let badgeHtml = `<span style="color: #059669; font-weight: 800;">✓ Vé Hợp Lệ — Chưa sử dụng (Sẵn sàng Check-in)</span>`;
     if (!isValid) {
@@ -99,7 +100,7 @@ function renderSingleTicketCard(ticketCode, data) {
             <p style="margin: 10px 0; font-size: 14px;"><strong>Tình trạng vé:</strong> ${badgeHtml}</p>
             ${isValid && !isCheckedIn ? `
                 <div style="text-align: center; margin-top: 12px; background: #fff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                    <img src="${qrUrl}" alt="QR ${safeCode}" style="width: 155px; height: 155px;" />
+                    <img src="${qrUrl}" alt="QR ${safeCode}" onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${fallbackQrUrl}';}" style="width: 155px; height: 155px;" />
                     <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Xuất trình mã QR này tại quầy Check-in</div>
                 </div>
             ` : ''}

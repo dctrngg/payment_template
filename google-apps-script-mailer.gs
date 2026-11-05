@@ -1,16 +1,15 @@
 /**
  * ==============================================================================
  * GOOGLE APPS SCRIPT - CẦU NỐI BẢO MẬT PAYOS (TẠO VIETQR & ĐỐI SOÁT TỰ ĐỘNG)
- *                      + GỬI EMAIL VÉ ĐIỆN TỬ QUA GMAIL BTC
+ *                      + GỬI EMAIL VÉ ĐIỆN TỬ QUA GMAIL BTC (INLINE QR CID)
  * ==============================================================================
  * HƯỚNG DẪN CÀI ĐẶT / CẬP NHẬT CHỈ TRONG 1 PHÚT:
  * 1. Truy cập https://script.google.com/ -> Mở dự án của bạn (hoặc tạo "Dự án mới").
  * 2. Xóa code cũ, dán toàn bộ nội dung file này vào -> Nhấn Ctrl+S để lưu.
- * 3. Nhấn nút "Triển khai" (Deploy) góc trên bên phải -> Chọn "Tùy chọn triển khai mới" (New deployment):
- *    - Chọn loại (Select type): "Ứng dụng web" (Web app)
- *    - Thực thi dưới dạng (Execute as): "Tôi" (Me)
- *    - Ai có quyền truy cập (Who has access): "Bất kỳ ai" (Anyone)
- * 4. Nhấn "Triển khai" (Deploy) -> Cấp quyền -> Copy đường dẫn "URL ứng dụng web" (Web app URL).
+ * 3. Nhấn nút "Triển khai" (Deploy) góc trên bên phải -> Chọn "Quản lý bản triển khai" (Manage deployments):
+ *    - Chọn phiên bản hiện tại -> Nhấn biểu tượng chỉnh sửa (cây bút) -> Chọn "Phiên bản mới" (New version) -> Nhấn "Triển khai" (Deploy).
+ *    (Nếu tạo mới lần đầu: Chọn "Tùy chọn triển khai mới" -> Web app -> Execute as "Tôi" -> Who has access "Bất kỳ ai").
+ * 4. Copy đường dẫn "URL ứng dụng web" (Web app URL).
  * 5. Dán URL đó vào biến `appsScriptWebhookUrl` trong file `js/config.js`
  *    (và ô "Google Apps Script Webhook URLs" trên trang Admin `admin-orders.html`).
  */
@@ -176,28 +175,97 @@ function createPayosSignature(orderCode, amount, description, cancelUrl, returnU
 
 /**
  * Xử lý gửi Email Vé Điện Tử qua Gmail
+ * NÂNG CẤP TỐI ƯU: Tự động tải ảnh QR và đính kèm trực tiếp dạng Inline Attachment (cid:)
+ * Giúp Gmail (cả Mobile App lẫn Máy tính) hiển thị QR 100% tức thì, không bị chặn bởi
+ * Google Image Proxy, không bị Rate Limit server ngoài, không bị chặn bởi cài đặt ẩn ảnh ngoài.
  */
 function handleSendTicketEmail(payload) {
   var recipient = (payload.to || "").trim();
   var subject = payload.subject || "Vé Điện Tử Sự Kiện";
   var htmlBody = payload.htmlBody || "";
+  var ticketCodes = Array.isArray(payload.ticketCodes) ? payload.ticketCodes : [];
 
   if (!recipient || recipient.indexOf("@") === -1) {
     return createJsonResponse({ status: "error", message: "Địa chỉ email người nhận không hợp lệ." });
   }
 
-  MailApp.sendEmail({
+  var inlineImages = {};
+
+  // Tự động tải mã QR về và đính kèm dạng Inline Attachment (cid:)
+  if (ticketCodes.length > 0) {
+    for (var i = 0; i < ticketCodes.length; i++) {
+      var code = String(ticketCodes[i]).trim();
+      if (!code) continue;
+
+      var cidKey = "ticket_qr_" + i;
+      var qrBlob = fetchQrBlobWithFallback(code);
+      if (qrBlob) {
+        inlineImages[cidKey] = qrBlob;
+
+        // Thay thế URL web ngoài trong htmlBody thành cid nội bộ cho đúng mã vé này
+        var safeCodePattern = escapeRegexForAppsScript(code);
+        var urlRegex = new RegExp('https?:\\/\\/[^"\'\\s]+' + safeCodePattern + '[^"\'\\s]*', 'g');
+        if (urlRegex.test(htmlBody)) {
+          htmlBody = htmlBody.replace(urlRegex, "cid:" + cidKey);
+        } else {
+          var srcRegex = new RegExp('src="[^"]*' + safeCodePattern + '[^"]*"', 'g');
+          htmlBody = htmlBody.replace(srcRegex, 'src="cid:' + cidKey + '"');
+        }
+      }
+    }
+  }
+
+  var mailOptions = {
     to: recipient,
     subject: subject,
     htmlBody: htmlBody,
     name: "Ban Tổ Chức Sự Kiện"
-  });
+  };
+
+  if (Object.keys(inlineImages).length > 0) {
+    mailOptions.inlineImages = inlineImages;
+  }
+
+  MailApp.sendEmail(mailOptions);
 
   return createJsonResponse({
     status: "success",
     message: "Đã gửi email vé thành công tới " + recipient,
+    inlineCount: Object.keys(inlineImages).length,
     remainingQuota: MailApp.getRemainingDailyQuota()
   });
+}
+
+/**
+ * Tải ảnh QR dưới dạng Blob với cơ chế tự động thử nhiều nguồn CDN (QuickChart -> QRServer)
+ */
+function fetchQrBlobWithFallback(ticketCode) {
+  var encoded = encodeURIComponent(ticketCode);
+  var sources = [
+    "https://quickchart.io/qr?size=320&margin=2&text=" + encoded,
+    "https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&data=" + encoded
+  ];
+
+  for (var i = 0; i < sources.length; i++) {
+    try {
+      var resp = UrlFetchApp.fetch(sources[i], {
+        muteHttpExceptions: true
+      });
+      if (resp.getResponseCode() === 200) {
+        var blob = resp.getBlob();
+        blob.setName("ticket_qr_" + ticketCode.replace(/[^a-zA-Z0-9_-]/g, "_") + ".png");
+        blob.setContentType("image/png");
+        return blob;
+      }
+    } catch (e) {
+      // Tiếp tục thử nguồn tiếp theo
+    }
+  }
+  return null;
+}
+
+function escapeRegexForAppsScript(str) {
+  return String(str).replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 }
 
 function createJsonResponse(obj) {
