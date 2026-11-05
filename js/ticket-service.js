@@ -769,7 +769,7 @@ export async function verifyPayosOrderPayment(orderCode, rawWebhookUrls = "") {
  * Kiểm tra trạng thái PayOS -> Tự động sinh mã vé bảo mật -> Tự động duyệt đơn APPROVED -> Tự động bắn Email vé QR
  * Có thể gọi trực tiếp từ thanks.html, check-order.html hoặc Auto-Pilot trên admin-orders.html
  */
-export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", rawWebhookUrls = "") {
+export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", rawWebhookUrls = "", fallbackOrderData = null) {
     if (!orderId) {
         throw new Error("Thiếu mã đơn hàng (orderId) để tự động cấp vé.");
     }
@@ -779,12 +779,12 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
     const orderTicketsColName = FIREBASE_CONFIG.orderTicketsCollection || "order_tickets";
 
     const orderRef = doc(db, ordersColName, orderId);
-    const orderSnap = await getDoc(orderRef);
-    if (!orderSnap.exists()) {
-        throw new Error("Không tìm thấy đơn hàng trên hệ thống.");
-    }
+    let orderSnap = null;
+    try {
+        orderSnap = await getDoc(orderRef);
+    } catch (_) {}
 
-    const d = orderSnap.data();
+    const d = (orderSnap && orderSnap.exists()) ? orderSnap.data() : (fallbackOrderData || {});
     const payosOrderCode = Number(d.payosOrderCode || orderCodeFallback || 0);
     if (!payosOrderCode) {
         throw new Error("Đơn hàng không có mã giao dịch PayOS.");
@@ -797,6 +797,9 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
         customerName: d.customerName || d.name || "Khách hàng",
         phone: d.phone || "",
         email: d.email || "",
+        facebook: d.facebook || "",
+        referrer: d.referrer || "",
+        voucherCode: d.voucherCode || "",
         quantity: qty,
         totalAmount: Number(d.totalAmount) || (qty * EVENT_CONFIG.ticketPrice),
         payosOrderCode: payosOrderCode,
@@ -807,6 +810,7 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
     // 1. Đối soát trực tiếp với máy chủ PayOS qua Google Apps Script Bridge
     const payosRes = await verifyPayosOrderPayment(payosOrderCode, rawWebhookUrls);
     if (!payosRes.isPaid) {
+        // Chưa thanh toán thành công -> Tuyệt đối không ghi đơn vào Firestore!
         return {
             isPaid: false,
             payosStatus: payosRes.payosStatus || "PENDING",
@@ -827,9 +831,39 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
     }
     const maskedList = ticketCodes.map(maskTicketCode);
 
-    // 3. Ghi danh sách vé vào Firestore (tickets, order_tickets) & chuyển đơn sang APPROVED
+    // 3. Chỉ khi PayOS xác nhận ĐÃ THANH TOÁN (isPaid === true) mới ghi đơn APPROVED & vé vào Firestore
     let firestoreSynced = false;
     try {
+        const orderPayload = {
+            customerName: orderObj.customerName,
+            name: orderObj.name,
+            phone: orderObj.phone,
+            email: orderObj.email,
+            facebook: orderObj.facebook,
+            referrer: orderObj.referrer,
+            voucherCode: orderObj.voucherCode,
+            quantity: qty,
+            ticketPrice: EVENT_CONFIG.ticketPrice,
+            totalAmount: orderObj.totalAmount,
+            payosOrderCode: payosOrderCode,
+            ticketType: "e-ticket",
+            paymentMethod: "payos_qr",
+            status: "APPROVED",
+            verifiedBy: "PayOS Auto (100%)",
+            approvedBy: "PayOS Auto (100%)",
+            maskedTickets: maskedList,
+            issuedTicketCount: ticketCodes.length,
+            ticketCodes: deleteField(),
+            approvedAt: serverTimestamp()
+        };
+
+        if (!orderSnap || !orderSnap.exists()) {
+            orderPayload.createdAt = serverTimestamp();
+            await setDoc(orderRef, orderPayload, { merge: true });
+        } else {
+            await updateDoc(orderRef, orderPayload);
+        }
+
         for (let i = 0; i < ticketCodes.length; i++) {
             const code = ticketCodes[i];
             const ticketNumber = i + 1;
@@ -865,18 +899,9 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
             }, { merge: true });
         } catch (_) {}
 
-        await updateDoc(orderRef, {
-            status: "APPROVED",
-            verifiedBy: "PayOS Auto (100%)",
-            approvedBy: "PayOS Auto (100%)",
-            maskedTickets: maskedList,
-            issuedTicketCount: ticketCodes.length,
-            ticketCodes: deleteField(),
-            approvedAt: serverTimestamp()
-        });
         firestoreSynced = true;
     } catch (fsErr) {
-        console.warn("Ghi vé trực tiếp cần cập nhật firestore.rules hoặc sẽ được Auto-Pilot Admin đồng bộ:", fsErr.message);
+        console.warn("Ghi vé vào Firestore:", fsErr.message);
     }
 
     // 4. Tự động bắn Email vé kèm mã QR cho khách hàng ngay lập tức (chống gửi trùng lặp)

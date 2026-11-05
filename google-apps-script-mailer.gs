@@ -192,6 +192,7 @@ function handleSendTicketEmail(payload) {
   var inlineImages = {};
 
   // Tự động tải mã QR về và đính kèm dạng Inline Attachment (cid:)
+  // Chuẩn RFC 2392: Giúp Gmail Mobile App và Máy tính hiển thị mã QR 100% tức thì, không bị chặn hay proxy lỗi
   if (ticketCodes.length > 0) {
     for (var i = 0; i < ticketCodes.length; i++) {
       var code = String(ticketCodes[i]).trim();
@@ -202,15 +203,11 @@ function handleSendTicketEmail(payload) {
       if (qrBlob) {
         inlineImages[cidKey] = qrBlob;
 
-        // Thay thế URL web ngoài trong htmlBody thành cid nội bộ cho đúng mã vé này
+        // Thay thế URL ảnh web ngoài thành cid nội bộ cho đúng mã vé này
+        // CHỈ thay thế URL ảnh tạo QR (quickchart.io / qrserver.com), KHÔNG thay thế link tra cứu web <a>
         var safeCodePattern = escapeRegexForAppsScript(code);
-        var urlRegex = new RegExp('https?:\\/\\/[^"\'\\s]+' + safeCodePattern + '[^"\'\\s]*', 'g');
-        if (urlRegex.test(htmlBody)) {
-          htmlBody = htmlBody.replace(urlRegex, "cid:" + cidKey);
-        } else {
-          var srcRegex = new RegExp('src="[^"]*' + safeCodePattern + '[^"]*"', 'g');
-          htmlBody = htmlBody.replace(srcRegex, 'src="cid:' + cidKey + '"');
-        }
+        var qrImgRegex = new RegExp('https?:\\/\\/[^"\'\\s]*(?:quickchart\\.io|qrserver\\.com)[^"\'\\s]*' + safeCodePattern + '[^"\'\\s]*', 'g');
+        htmlBody = htmlBody.replace(qrImgRegex, "cid:" + cidKey);
       }
     }
   }

@@ -613,8 +613,11 @@ if (formElement) {
             `, true, true);
 
             try {
-                const docPayload = {
+                const orderId = "ORD-" + currentPayosOrderCode;
+                const pendingOrderData = {
+                    orderId: orderId,
                     customerName: customer,
+                    name: customer,
                     phone: phone,
                     email: email,
                     facebook: linkfb,
@@ -626,21 +629,26 @@ if (formElement) {
                     transferMemo: currentTransferMemo,
                     payosOrderCode: currentPayosOrderCode,
                     ticketType: "e-ticket",
-                    billImage: "",
-                    status: "pending",
-                    paymentMethod: "payos_qr",
-                    createdAt: serverTimestamp()
+                    paymentMethod: "payos_qr"
                 };
 
-                const docRef = await addDoc(collection(db, FIREBASE_CONFIG.ordersCollection || "orders"), docPayload);
+                // Lưu tạm vào bộ nhớ trình duyệt, KHÔNG ghi vào Firebase lúc này
+                // Chỉ khi khách thanh toán PayOS thành công 100% thì mới ghi vào Firebase
+                try {
+                    sessionStorage.setItem('pending_order_' + currentPayosOrderCode, JSON.stringify(pendingOrderData));
+                    localStorage.setItem('pending_order_latest', JSON.stringify(pendingOrderData));
+                } catch (_) {}
 
                 const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "");
                 const returnParams = new URLSearchParams({
-                    orderId: docRef.id,
+                    orderId: orderId,
                     orderCode: String(currentPayosOrderCode),
                     customer: customer,
                     email: email,
                     phone: phone,
+                    facebook: linkfb,
+                    referrer: referrer,
+                    voucher: appliedVoucherCode || "",
                     quantity: String(quantity),
                     total: String(currentTotalAmount)
                 });

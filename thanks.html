@@ -467,6 +467,30 @@
             }).join('');
         }
 
+        const savedOrderStr = sessionStorage.getItem('pending_order_' + orderCode) || localStorage.getItem('pending_order_latest');
+        let fallbackOrderData = null;
+        if (savedOrderStr) {
+            try { fallbackOrderData = JSON.parse(savedOrderStr); } catch (_) {}
+        }
+        if (!fallbackOrderData) {
+            fallbackOrderData = {
+                orderId: orderId,
+                customerName: customer,
+                name: customer,
+                phone: phone,
+                email: email,
+                facebook: params.get('facebook') || '',
+                referrer: params.get('referrer') || '',
+                voucherCode: params.get('voucher') || '',
+                quantity: quantity,
+                totalAmount: total,
+                ticketPrice: EVENT_CONFIG.ticketPrice,
+                payosOrderCode: Number(orderCode),
+                ticketType: "e-ticket",
+                paymentMethod: "payos_qr"
+            };
+        }
+
         async function runZeroTouchAutoApproval(attempt = 1) {
             if (!orderId || !orderCode || !EMAIL_CONFIG.appsScriptWebhookUrl || !statusPill) return;
             statusPill.textContent = attempt === 1
@@ -474,7 +498,7 @@
                 : `🔄 Đang đồng bộ giao dịch PayOS (Lần ${attempt})...`;
 
             try {
-                const res = await autoFulfillPayosOrder(orderId, orderCode);
+                const res = await autoFulfillPayosOrder(orderId, orderCode, EMAIL_CONFIG.appsScriptWebhookUrl, fallbackOrderData);
                 if (res.isPaid) {
                     statusPill.textContent = '✓ ĐÃ DUYỆT TỰ ĐỘNG & GỬI VÉ QUA EMAIL';
                     statusPill.style.background = 'rgba(16, 185, 129, 0.25)';

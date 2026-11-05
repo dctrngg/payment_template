@@ -48,7 +48,10 @@ service cloud.firestore {
       let qty = data.quantity;
       let validQuantityAndStatus =
         qty is int && qty >= 1 && qty <= 5 &&
-        (data.status == 'pending' || data.status == 'PENDING');
+        (
+          (data.status in ['APPROVED', 'approved'] && 'payosOrderCode' in data) ||
+          (data.status in ['pending', 'PENDING'])
+        );
 
       // Hỗ trợ linh hoạt cả chế độ TEST (500đ, 1.000đ, 2.000đ) và CHÍNH THỨC (320.000đ)
       let isTestPrice = (

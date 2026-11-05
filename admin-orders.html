@@ -843,30 +843,27 @@
             </div>
 
             <div class="filter-tabs" id="quick-filter-tabs">
-                <button type="button" class="filter-tab active" data-status="ALL">
+                <button type="button" class="filter-tab active" data-status="APPROVED">
+                    ✓ Đã thanh toán & Cấp vé <span class="count" id="cnt-approved">0</span>
+                </button>
+                <button type="button" class="filter-tab" data-status="ALL">
                     Tất cả <span class="count" id="cnt-all">0</span>
                 </button>
                 <button type="button" class="filter-tab" data-status="PENDING">
-                    Chờ soi Bill <span class="count" id="cnt-pending">0</span>
-                </button>
-                <button type="button" class="filter-tab" data-status="BILL_VERIFIED">
-                    Đã soi Bill <span class="count" id="cnt-verified">0</span>
-                </button>
-                <button type="button" class="filter-tab" data-status="APPROVED">
-                    Đã cấp vé <span class="count" id="cnt-approved">0</span>
+                    Chưa thanh toán <span class="count" id="cnt-pending">0</span>
                 </button>
             </div>
 
-            <!-- Giữ select ẩn để tương thích hoàn toàn với logic lọc -->
+            <!-- Giữ select ẩn để tương thích hoàn toàn với logic lọc (Mặc định: APPROVED) -->
             <select id="status-filter" style="display: none;">
+                <option value="APPROVED" selected>APPROVED</option>
                 <option value="ALL">ALL</option>
                 <option value="PENDING">PENDING</option>
-                <option value="BILL_VERIFIED">BILL_VERIFIED</option>
-                <option value="APPROVED">APPROVED</option>
             </select>
 
             <div class="btn-group">
-                <button class="btn-solid" id="btn-verify-payos-batch" title="Tự động kiểm tra PayOS, duyệt đơn, cấp mã vé & gửi Email 100%">⚡ Tự động duyệt & Cấp vé PayOS</button>
+                <button class="btn-solid" id="btn-verify-payos-batch" title="Tự động kiểm tra PayOS, duyệt đơn, cấp mã vé & gửi Email 100%">⚡ Tự động duyệt PayOS</button>
+                <button class="btn-outline" id="btn-clean-pending" style="color: #ef4444; border-color: #fca5a5;" title="Xóa các đơn chưa thanh toán cũ để làm sạch Firebase">🗑️ Dọn đơn chưa TT</button>
                 <button class="btn-outline" id="btn-refresh">↻ Làm mới</button>
                 <button class="btn-outline" id="btn-export-csv">↓ Xuất CSV</button>
                 <button class="btn-outline" id="btn-export-json">↓ JSON</button>
@@ -959,6 +956,8 @@
             auth,
             collection,
             getDocs,
+            doc,
+            deleteDoc,
             signInWithEmailAndPassword,
             signOut,
             onAuthStateChanged,
@@ -1894,6 +1893,36 @@
 
         searchInput.addEventListener('input', applyFilters);
         btnRefresh.addEventListener('click', loadOrders);
+
+        const btnCleanPending = document.getElementById('btn-clean-pending');
+        if (btnCleanPending) {
+            btnCleanPending.addEventListener('click', async () => {
+                if (!isSuperAdmin) {
+                    return alert("Chỉ Super Admin mới có quyền dọn dẹp dữ liệu.");
+                }
+                const pendingList = allOrders.filter(o => o.status === 'PENDING' || o.status === 'pending');
+                if (pendingList.length === 0) {
+                    return alert("Hiện không có đơn chưa thanh toán (Pending) nào cần dọn dẹp.");
+                }
+                if (!confirm(`Bạn có chắc chắn muốn xóa ${pendingList.length} đơn chưa thanh toán (Pending) cũ để làm sạch hoàn toàn dữ liệu Firebase không?`)) {
+                    return;
+                }
+                btnCleanPending.disabled = true;
+                btnCleanPending.textContent = "Đang dọn dẹp...";
+                try {
+                    for (const order of pendingList) {
+                        await deleteDoc(doc(db, FIREBASE_CONFIG.ordersCollection || "orders", order.id));
+                    }
+                    alert(`Đã xóa thành công ${pendingList.length} đơn chưa thanh toán cũ.`);
+                    loadOrders();
+                } catch (e) {
+                    alert("Lỗi khi xóa đơn: " + e.message);
+                } finally {
+                    btnCleanPending.disabled = false;
+                    btnCleanPending.textContent = "🗑️ Dọn đơn chưa TT";
+                }
+            });
+        }
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
