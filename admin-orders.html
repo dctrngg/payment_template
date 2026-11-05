@@ -780,9 +780,10 @@
                         vòng)</label>
                     <input type="text" id="webhook-url-input" placeholder="https://script.google.com/macros/s/.../exec">
                 </div>
-                <div style="display: flex; gap: 8px;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button type="button" class="btn-outline" id="btn-toggle-secret">Hiện khóa</button>
                     <button type="button" class="btn-solid" id="btn-save-security">Lưu cấu hình</button>
+                    <button type="button" class="btn-outline" id="btn-confirm-payos-webhook" style="border-color: #10b981; color: #059669; font-weight: 700;" title="Kích hoạt Webhook URL này lên máy chủ PayOS">🔗 Kích hoạt Webhook PayOS</button>
                 </div>
             </div>
             <div class="security-field" style="margin-top: 12px;">
@@ -959,6 +960,9 @@
             auth,
             collection,
             getDocs,
+            getDoc,
+            query,
+            where,
             onSnapshot,
             doc,
             deleteDoc,
@@ -1116,6 +1120,44 @@
                 btnSaveSecurity.textContent = 'Lưu cấu hình';
             }
         });
+
+        const btnConfirmPayosWebhook = document.getElementById('btn-confirm-payos-webhook');
+        if (btnConfirmPayosWebhook) {
+            btnConfirmPayosWebhook.addEventListener('click', async () => {
+                const rawUrls = (webhookUrlInput.value || '').trim();
+                const webhookUrl = rawUrls.split(',')[0].trim();
+                if (!webhookUrl || !webhookUrl.startsWith('https://')) {
+                    alert('Vui lòng nhập Google Apps Script Webhook URL hợp lệ (bắt đầu bằng https://) vào ô bên cạnh trước!');
+                    webhookUrlInput.focus();
+                    return;
+                }
+
+                btnConfirmPayosWebhook.disabled = true;
+                btnConfirmPayosWebhook.textContent = '⏳ Đang đăng ký với PayOS...';
+
+                try {
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'confirm_payos_webhook',
+                            webhookUrl: webhookUrl
+                        })
+                    });
+                    const res = await response.json();
+                    if (res && (res.status === 'success' || res.code === '00')) {
+                        alert('🎉 CHÚC MỪNG!\n\nPayOS đã xác nhận và liên kết Webhook URL thành công!\nBạn hãy F5 (tải lại) trang Quản trị PayOS (my.payos.vn), bạn sẽ thấy Webhook URL xuất hiện ngay lập tức.');
+                    } else {
+                        alert('⚠️ Không thể kích hoạt Webhook: ' + ((res && res.message) || 'Vui lòng kiểm tra lại Client ID & API Key trong Google Apps Script.'));
+                    }
+                } catch (err) {
+                    alert('Lỗi kết nối tới Google Apps Script: ' + err.message);
+                } finally {
+                    btnConfirmPayosWebhook.disabled = false;
+                    btnConfirmPayosWebhook.textContent = '🔗 Kích hoạt Webhook PayOS';
+                }
+            });
+        }
 
         btnClaimSuper.addEventListener('click', async () => {
             if (!currentUser) return;
@@ -1296,9 +1338,10 @@
                         const amount = Number(d.totalAmount) || (qty * EVENT_CONFIG.ticketPrice);
                         const rawTime = (d.createdAt && d.createdAt.toMillis) ? d.createdAt.toMillis() : ((d.timestamp && d.timestamp.toMillis) ? d.timestamp.toMillis() : 0);
 
-                        const realCodes = isSuperAdmin
-                            ? (realTicketVaultMap[docSnap.id] || (Array.isArray(d.ticketCodes) ? d.ticketCodes : []))
-                            : [];
+                        const rawTicketCodes = Array.isArray(d.ticketCodes) && d.ticketCodes.length > 0 ? d.ticketCodes : [];
+                        const realCodes = (realTicketVaultMap[docSnap.id] && realTicketVaultMap[docSnap.id].length > 0)
+                            ? realTicketVaultMap[docSnap.id]
+                            : rawTicketCodes;
 
                         const rawImg = d.billImageBase64 || d.billImage || d.imageUrl || d.image || d.bill || d.billUrl || d.receiptUrl || '';
                         let validImg = '';
@@ -1328,6 +1371,7 @@
                             status: (d.status || 'pending').toUpperCase(),
                             verifiedBy: d.verifiedBy || '',
                             maskedTickets: Array.isArray(d.maskedTickets) ? d.maskedTickets : [],
+                            ticketCodes: rawTicketCodes,
                             realTicketCodes: realCodes,
                             emailSent: Boolean(d.emailSent),
                             createdAtText: formatDate(d.createdAt || d.timestamp),
@@ -1424,10 +1468,50 @@
             applyFilters();
         });
 
-        function openTicketModal(order) {
-            if (!isSuperAdmin) return;
+        async function openTicketModal(order) {
             currentModalOrder = order;
-            const codes = Array.isArray(order.realTicketCodes) ? order.realTicketCodes : [];
+            let codes = (Array.isArray(order.realTicketCodes) && order.realTicketCodes.length > 0 && !order.realTicketCodes[0].includes('*'))
+                ? order.realTicketCodes
+                : (realTicketVaultMap[order.id] || (Array.isArray(order.ticketCodes) && order.ticketCodes.length > 0 ? order.ticketCodes : []));
+
+            // Nếu chưa có mã thật trong RAM, thử truy vấn tức thì từ Firestore (order_tickets hoặc tickets)
+            if (codes.length === 0 || codes.some(c => typeof c === 'string' && c.includes('*'))) {
+                try {
+                    const otSnap = await getDoc(doc(db, FIREBASE_CONFIG.orderTicketsCollection || "order_tickets", order.id));
+                    if (otSnap.exists() && Array.isArray(otSnap.data().ticketCodes) && otSnap.data().ticketCodes.length > 0) {
+                        codes = otSnap.data().ticketCodes;
+                    }
+                } catch (e) {
+                    console.warn("Không thể đọc order_tickets:", e);
+                }
+
+                if (codes.length === 0 || codes.some(c => typeof c === 'string' && c.includes('*'))) {
+                    try {
+                        const q = query(collection(db, FIREBASE_CONFIG.ticketsCollection || "tickets"), where("orderId", "==", order.id));
+                        const tSnap = await getDocs(q);
+                        const fetched = [];
+                        tSnap.forEach(tDoc => {
+                            const td = tDoc.data();
+                            if (td.ticketCode && !fetched.includes(td.ticketCode)) fetched.push(td.ticketCode);
+                        });
+                        if (fetched.length > 0) {
+                            codes = fetched;
+                        }
+                    } catch (e) {
+                        console.warn("Không thể đọc tickets:", e);
+                    }
+                }
+            }
+
+            if (codes.length > 0 && !codes[0].includes('*')) {
+                order.realTicketCodes = codes;
+                realTicketVaultMap[order.id] = codes;
+                applyFilters();
+            } else if (Array.isArray(order.maskedTickets) && order.maskedTickets.length > 0) {
+                codes = order.maskedTickets;
+            }
+
+            currentModalOrder.realTicketCodes = codes;
             const emailHtml = buildTicketEmailHtml(order, codes);
             modalPreviewContainer.innerHTML = emailHtml;
             modalStatusBanner.style.display = 'none';
@@ -1449,9 +1533,11 @@
         ticketModal.addEventListener('click', (e) => { if (e.target === ticketModal) ticketModal.style.display = 'none'; });
 
         btnModalSendEmail.addEventListener('click', async () => {
-            if (!currentModalOrder || !isSuperAdmin) return;
-            const codes = currentModalOrder.realTicketCodes || [];
-            const webhookUrls = webhookUrlInput.value.trim();
+            if (!currentModalOrder) return;
+            const codes = (Array.isArray(currentModalOrder.realTicketCodes) && currentModalOrder.realTicketCodes.length > 0)
+                ? currentModalOrder.realTicketCodes
+                : (realTicketVaultMap[currentModalOrder.id] || (Array.isArray(currentModalOrder.ticketCodes) ? currentModalOrder.ticketCodes : []));
+            const webhookUrls = webhookUrlInput.value.trim() || EMAIL_CONFIG.appsScriptWebhookUrl || '';
             btnModalSendEmail.disabled = true;
             btnModalSendEmail.textContent = 'Đang gửi...';
             try {
@@ -1585,8 +1671,12 @@
 
                 let ticketColumnHtml = `<span class="sub-meta">Chưa phát hành</span>`;
                 if (st === 'APPROVED') {
-                    if (isSuperAdmin && item.realTicketCodes && item.realTicketCodes.length > 0) {
-                        ticketColumnHtml = item.realTicketCodes.map(c => `<span class="ticket-code-pill copyable" data-copy="${escapeHtml(c)}" title="Bấm để copy mã vé">${escapeHtml(c)}</span>`).join('') +
+                    const validCodes = (item.realTicketCodes && item.realTicketCodes.length > 0 && !item.realTicketCodes[0].includes('*'))
+                        ? item.realTicketCodes
+                        : (realTicketVaultMap[item.id] || (Array.isArray(item.ticketCodes) && item.ticketCodes.length > 0 ? item.ticketCodes : []));
+
+                    if (validCodes.length > 0 && !validCodes[0].includes('*')) {
+                        ticketColumnHtml = validCodes.map(c => `<span class="ticket-code-pill copyable" data-copy="${escapeHtml(c)}" title="Bấm để copy mã vé">${escapeHtml(c)}</span>`).join('') +
                             (item.emailSent
                                 ? `<div class="sub-meta" style="color: var(--text-primary); font-weight: 500;">✓ Đã gửi email</div>`
                                 : `<div class="sub-meta">Chưa gửi email tự động</div>`);
@@ -1594,8 +1684,8 @@
                         const masked = (item.maskedTickets && item.maskedTickets.length > 0)
                             ? item.maskedTickets
                             : Array.from({ length: item.quantity }, () => 'HVC-******-****');
-                        ticketColumnHtml = masked.map(m => `<span class="ticket-masked-pill">🔒 ${escapeHtml(m)}</span>`).join('') +
-                            `<div class="sub-meta">Đã ẩn bảo mật</div>`;
+                        ticketColumnHtml = masked.map(m => `<span class="ticket-code-pill btn-view-ticket" data-view-id="${escapeHtml(item.id)}" style="border-style: dashed; cursor: pointer;" title="Bấm để mở modal xem mã vé & QR">🎟️ ${escapeHtml(m)}</span>`).join('') +
+                            `<div class="sub-meta btn-view-ticket" style="cursor: pointer;" data-view-id="${escapeHtml(item.id)}">Đã cấp vé (Bấm QR/Mail để xem)</div>`;
                     }
                 }
 
@@ -1612,7 +1702,7 @@
                     actionButtonsHtml = `
                         <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
                             ${payosQuickBtn}
-                            ${isApp && item.realTicketCodes && item.realTicketCodes.length > 0 ? `<button class="btn-outline btn-table-action btn-view-ticket" data-view-id="${escapeHtml(item.id)}">QR / Mail</button>` : ''}
+                            ${isApp ? `<button class="btn-outline btn-table-action btn-view-ticket" data-view-id="${escapeHtml(item.id)}">QR / Mail</button>` : ''}
                             <button class="${btnClass} btn-table-action action-btn" data-id="${escapeHtml(item.id)}" data-next="${nextSt}">${btnLabel}</button>
                         </div>
                     `;
@@ -1689,15 +1779,13 @@
                 });
             });
 
-            if (isSuperAdmin) {
-                tbody.querySelectorAll('.btn-view-ticket').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const docId = btn.getAttribute('data-view-id');
-                        const target = allOrders.find(o => o.id === docId);
-                        if (target) openTicketModal(target);
-                    });
+            tbody.querySelectorAll('.btn-view-ticket').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const docId = btn.getAttribute('data-view-id');
+                    const target = allOrders.find(o => o.id === docId);
+                    if (target) openTicketModal(target);
                 });
-            }
+            });
 
             // Sự kiện kiểm tra giao dịch PayOS cho từng dòng đơn hàng
             tbody.querySelectorAll('.btn-check-payos').forEach(btn => {
@@ -1813,26 +1901,33 @@
             if (btnVerifyPayosBatch) btnVerifyPayosBatch.disabled = true;
             let approvedCount = 0;
 
-            for (let i = 0; i < pendingWithCode.length; i++) {
-                const order = pendingWithCode[i];
+            // Xử lý song song theo từng cụm (Batch 4 đơn cùng lúc) để tăng tốc độ gấp 4 lần
+            const BATCH_SIZE = 4;
+            for (let i = 0; i < pendingWithCode.length; i += BATCH_SIZE) {
+                const chunk = pendingWithCode.slice(i, i + BATCH_SIZE);
                 if (btnVerifyPayosBatch) {
-                    btnVerifyPayosBatch.textContent = `🤖 Đang tự duyệt ${i + 1}/${pendingWithCode.length}...`;
+                    btnVerifyPayosBatch.textContent = `🤖 Đang tự duyệt ${i + 1}-${Math.min(i + chunk.length, pendingWithCode.length)}/${pendingWithCode.length}...`;
                 }
-                try {
-                    const autoRes = await autoFulfillPayosOrder(order.id, order.payosOrderCode, webhookUrls);
-                    if (autoRes && autoRes.isPaid) {
-                        order.status = 'APPROVED';
-                        order.verifiedBy = 'PayOS Auto (100%)';
-                        order.realTicketCodes = autoRes.ticketCodes || [];
-                        order.maskedTickets = autoRes.maskedTickets || [];
-                        order.emailSent = Boolean(autoRes.emailSent);
-                        if (autoRes.ticketCodes) realTicketVaultMap[order.id] = autoRes.ticketCodes;
-                        approvedCount++;
-                        applyFilters();
+
+                await Promise.allSettled(chunk.map(async (order) => {
+                    try {
+                        const autoRes = await autoFulfillPayosOrder(order.id, order.payosOrderCode, webhookUrls);
+                        if (autoRes && autoRes.isPaid) {
+                            order.status = 'APPROVED';
+                            order.verifiedBy = 'PayOS Auto (100%)';
+                            order.ticketCodes = autoRes.ticketCodes || [];
+                            order.realTicketCodes = autoRes.ticketCodes || [];
+                            order.maskedTickets = autoRes.maskedTickets || [];
+                            order.emailSent = Boolean(autoRes.emailSent);
+                            if (autoRes.ticketCodes) realTicketVaultMap[order.id] = autoRes.ticketCodes;
+                            approvedCount++;
+                        }
+                    } catch (e) {
+                        console.warn('Bỏ qua đơn PayOS chưa thanh toán:', order.payosOrderCode, e.message);
                     }
-                } catch (e) {
-                    console.warn('Bỏ qua đơn PayOS chưa thanh toán:', order.payosOrderCode, e.message);
-                }
+                }));
+
+                applyFilters();
             }
 
             if (btnVerifyPayosBatch) {

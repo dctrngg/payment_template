@@ -656,8 +656,14 @@ if (formElement) {
                 const cancelUrl = `${baseUrl}/index.html`;
 
                 const payosRes = await createPayosPaymentLink({
+                    orderId: orderId,
                     orderCode: currentPayosOrderCode,
                     amount: currentTotalAmount,
+                    quantity: quantity,
+                    ticketPrice: EVENT_CONFIG.ticketPrice,
+                    voucherCode: appliedVoucherCode || "",
+                    facebook: linkfb,
+                    referrer: referrer,
                     description: `HVC ${currentPayosOrderCode}`,
                     buyerName: customer,
                     buyerEmail: email,

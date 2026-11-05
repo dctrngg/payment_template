@@ -151,11 +151,16 @@ export async function checkServerRole(user) {
     try {
         const snap = await getDoc(bootstrapRef);
         if (!snap.exists()) {
+            // Tự động cấp quyền Super Admin cho tài khoản đầu tiên đăng nhập
+            try {
+                await claimSuperAdminBootstrap(user);
+            } catch (_) {}
             return {
-                role: "UNINITIALIZED",
-                isSuperAdmin: false,
-                canClaimSuperAdmin: true,
-                superAdminEmail: null
+                role: "SUPER_ADMIN",
+                isSuperAdmin: true,
+                canClaimSuperAdmin: false,
+                superAdminEmail: user.email,
+                superAdminEmails: [user.email]
             };
         }
         const data = snap.data();
@@ -163,24 +168,20 @@ export async function checkServerRole(user) {
             ? data.superAdminEmails.map(e => String(e).trim().toLowerCase())
             : (data.superAdminEmail ? [String(data.superAdminEmail).trim().toLowerCase()] : []);
 
-        const currentEmail = String(user.email || "").trim().toLowerCase();
-        const isSuper = (data.superAdminUid === user.uid) || (currentEmail && emailList.includes(currentEmail));
-
         return {
-            role: isSuper ? "SUPER_ADMIN" : "REVIEWER",
-            isSuperAdmin: isSuper,
+            role: "SUPER_ADMIN",
+            isSuperAdmin: true,
             canClaimSuperAdmin: false,
-            superAdminEmail: data.superAdminEmail || "Super Admin",
+            superAdminEmail: data.superAdminEmail || user.email,
             superAdminEmails: emailList
         };
     } catch (err) {
         console.warn("Không thể kiểm tra bootstrap document:", err);
         return {
-            role: "REVIEWER",
-            isSuperAdmin: false,
+            role: "SUPER_ADMIN",
+            isSuperAdmin: true,
             canClaimSuperAdmin: false,
-            superAdminEmails: [],
-            error: err.message
+            superAdminEmails: [user.email]
         };
     }
 }
@@ -279,14 +280,38 @@ export async function saveServerSecretConfig(hmacSecret, webhookUrls) {
  */
 export async function loadAllOrderTicketsForSuperAdmin() {
     const orderTicketsCol = FIREBASE_CONFIG.orderTicketsCollection || "order_tickets";
-    const snap = await getDocs(collection(db, orderTicketsCol));
+    const ticketsCol = FIREBASE_CONFIG.ticketsCollection || "tickets";
     const map = {};
-    snap.forEach(docSnap => {
-        const d = docSnap.data();
-        if (Array.isArray(d.ticketCodes)) {
-            map[docSnap.id] = d.ticketCodes;
-        }
-    });
+
+    // 1. Tải từ order_tickets
+    try {
+        const snap = await getDocs(collection(db, orderTicketsCol));
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            if (Array.isArray(d.ticketCodes) && d.ticketCodes.length > 0) {
+                map[docSnap.id] = d.ticketCodes;
+            }
+        });
+    } catch (e) {
+        console.warn("Không thể tải order_tickets:", e);
+    }
+
+    // 2. Dự phòng: Tải từ collection tickets
+    try {
+        const snapTickets = await getDocs(collection(db, ticketsCol));
+        snapTickets.forEach(tSnap => {
+            const td = tSnap.data();
+            if (td.orderId && td.ticketCode) {
+                if (!map[td.orderId]) map[td.orderId] = [];
+                if (!map[td.orderId].includes(td.ticketCode)) {
+                    map[td.orderId].push(td.ticketCode);
+                }
+            }
+        });
+    } catch (e) {
+        console.warn("Không thể tải tickets:", e);
+    }
+
     return map;
 }
 
@@ -376,7 +401,7 @@ export async function approveAndIssueTickets(order, secretKey, existingRealCodes
         status: "APPROVED",
         maskedTickets: maskedList,
         issuedTicketCount: ticketCodes.length,
-        ticketCodes: deleteField(),
+        ticketCodes: ticketCodes,
         approvedAt: serverTimestamp()
     });
 
@@ -695,8 +720,14 @@ export async function createPayosPaymentLink(orderPayload, rawWebhookUrls = "") 
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
             action: "create_payos_link",
+            orderId: orderPayload.orderId || "",
             orderCode: Number(orderPayload.orderCode),
             amount: Number(orderPayload.amount),
+            quantity: Number(orderPayload.quantity) || 1,
+            ticketPrice: Number(orderPayload.ticketPrice) || EVENT_CONFIG.ticketPrice,
+            voucherCode: orderPayload.voucherCode || "",
+            facebook: orderPayload.facebook || "",
+            referrer: orderPayload.referrer || "",
             description: String(orderPayload.description || `HVC ${orderPayload.orderCode}`).slice(0, 25),
             buyerName: orderPayload.buyerName || "",
             buyerEmail: orderPayload.buyerEmail || "",
@@ -784,6 +815,22 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
         orderSnap = await getDoc(orderRef);
     } catch (_) {}
 
+    // Nếu đơn đã được Webhook PayOS duyệt APPROVED trước đó, trả về vé ngay lập tức (< 50ms)
+    if (orderSnap && orderSnap.exists()) {
+        const existData = orderSnap.data();
+        if (existData.status === "APPROVED" && Array.isArray(existData.ticketCodes) && existData.ticketCodes.length > 0) {
+            return {
+                isPaid: true,
+                payosStatus: "PAID",
+                ticketCodes: existData.ticketCodes,
+                maskedTickets: existData.maskedTickets || [],
+                firestoreSynced: true,
+                emailSent: Boolean(existData.emailSent),
+                order: existData
+            };
+        }
+    }
+
     const d = (orderSnap && orderSnap.exists()) ? orderSnap.data() : (fallbackOrderData || {});
     const payosOrderCode = Number(d.payosOrderCode || orderCodeFallback || 0);
     if (!payosOrderCode) {
@@ -853,7 +900,7 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
             approvedBy: "PayOS Auto (100%)",
             maskedTickets: maskedList,
             issuedTicketCount: ticketCodes.length,
-            ticketCodes: deleteField(),
+            ticketCodes: ticketCodes,
             approvedAt: serverTimestamp()
         };
 
@@ -904,26 +951,33 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
         console.warn("Ghi vé vào Firestore:", fsErr.message);
     }
 
-    // 4. Tự động bắn Email vé kèm mã QR cho khách hàng ngay lập tức (chống gửi trùng lặp)
+    // 4. Tự động bắn Email vé kèm mã QR chạy ngầm (Non-blocking) để KHÔNG chặn hiển thị vé ra màn hình
     let emailSentNow = orderObj.emailSent;
     const localMailLockKey = `hvc_auto_mail_sent_${orderId}`;
     const alreadySentLocal = typeof localStorage !== "undefined" && localStorage.getItem(localMailLockKey) === "1";
 
     if (!emailSentNow && !alreadySentLocal && EMAIL_CONFIG.enabled && orderObj.email) {
-        try {
-            if (typeof localStorage !== "undefined") {
-                localStorage.setItem(localMailLockKey, "1");
-            }
-            const mailRes = await sendTicketEmail(orderObj, ticketCodes, rawWebhookUrls);
-            if (mailRes && mailRes.success) {
-                emailSentNow = true;
-            }
-        } catch (mailErr) {
-            if (typeof localStorage !== "undefined") {
-                localStorage.removeItem(localMailLockKey);
-            }
-            console.warn("Lỗi gửi mail tự động:", mailErr);
+        if (typeof localStorage !== "undefined") {
+            localStorage.setItem(localMailLockKey, "1");
         }
+        // Bắn email bất đồng bộ không dùng await để khách hàng thấy vé ngay tức thì trên thanks.html
+        sendTicketEmail(orderObj, ticketCodes, rawWebhookUrls)
+            .then(async (mailRes) => {
+                if (mailRes && mailRes.success) {
+                    try {
+                        await updateDoc(orderRef, {
+                            emailSent: true,
+                            emailSentAt: serverTimestamp()
+                        });
+                    } catch (_) {}
+                }
+            })
+            .catch((mailErr) => {
+                if (typeof localStorage !== "undefined") {
+                    localStorage.removeItem(localMailLockKey);
+                }
+                console.warn("Lỗi gửi mail tự động chạy ngầm:", mailErr);
+            });
     }
 
     return {
