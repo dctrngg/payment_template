@@ -430,13 +430,21 @@
                 </span>
                 <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">🎟️ THẺ VÉ ĐIỆN TỬ (QR CHECK-IN) CỦA BẠN</h2>
                 <p id="auto-mail-notice" style="font-size: 13.5px; color: #475569;">Hệ thống đã gửi bản sao kèm mã QR tới hộp thư Email của bạn.</p>
+                <div style="margin-top: 14px;">
+                    <button type="button" class="btn-save-all-passes" id="btn-save-all-passes">
+                        💾 Tải Tất Cả Thẻ Vé Về Album Ảnh (.PNG)
+                    </button>
+                </div>
             </div>
             <div id="auto-tickets-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;"></div>
         </div>
 
         <div class="action-bar">
-            <button type="button" class="btn-action btn-primary" onclick="window.print()">
-                🖨 Lưu / In Biên Nhận (PDF)
+            <button type="button" class="btn-action btn-save-passes-main" id="btnMainSavePasses" style="background: linear-gradient(135deg, #e11d48, #be123c); color: #fffbeb; border: 1.5px solid #fde047; box-shadow: 0 8px 20px rgba(225, 29, 72, 0.4);">
+                💾 Lưu Thẻ Vé Về Máy (Ảnh PNG)
+            </button>
+            <button type="button" class="btn-action btn-secondary" onclick="window.print()">
+                🖨 In Biên Nhận (PDF)
             </button>
             <a href="check-order.html" id="btnCheckStatus" class="btn-action btn-secondary">
                 🔍 Kiểm Tra Trạng Thái Đơn Vé
@@ -492,26 +500,115 @@
         const autoTicketsList = document.getElementById('auto-tickets-list');
         const autoMailNotice = document.getElementById('auto-mail-notice');
 
+        let latestIssuedTicketCodes = [];
+
         function renderIssuedTicketsOnThanks(ticketCodes) {
             if (!autoTicketsBox || !autoTicketsList || !Array.isArray(ticketCodes) || ticketCodes.length === 0) return;
+            latestIssuedTicketCodes = [...ticketCodes];
             autoTicketsBox.style.display = 'block';
             if (autoMailNotice) {
-                autoMailNotice.innerHTML = `Đã gửi tự động <strong>${ticketCodes.length} thẻ vé QR</strong> tới email <strong>${escapeHtml(email)}</strong>. Vui lòng lưu lại mã QR dưới đây để check-in tại cổng:`;
+                autoMailNotice.innerHTML = `Đã gửi tự động <strong>${ticketCodes.length} thẻ vé QR</strong> tới email <strong>${escapeHtml(email)}</strong>. Bạn có thể bấm nút bên dưới để tải thẳng ảnh vé vào Album máy dùng khi không có mạng:`;
             }
             autoTicketsList.innerHTML = ticketCodes.map((code, idx) => {
                 const safeCode = escapeHtml(code);
                 const qrUrl = getTicketQrImageUrl(code, 220);
                 const fallbackQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(code)}`;
                 return `
-                    <div style="border: 2px solid #e11d48; border-radius: 16px; padding: 16px; text-align: center; background: #f8fafc;">
-                        <div style="font-size: 12px; font-weight: 800; color: #9f1239; margin-bottom: 8px;">VÉ #${idx + 1}/${ticketCodes.length} — CHÍNH THỨC</div>
-                        <img src="${qrUrl}" alt="QR ${safeCode}" onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${fallbackQrUrl}';}" style="width: 165px; height: 165px; border-radius: 12px; border: 1px solid #cbd5e1; padding: 6px; background: #fff; margin-bottom: 10px;" />
-                        <div style="font-family: Consolas, monospace; font-size: 17px; font-weight: 800; color: #be123c; background: #fff1f2; border: 1.5px dashed #e11d48; padding: 6px 12px; border-radius: 8px; letter-spacing: 1px;">
-                            ${safeCode}
+                    <div style="border: 2px solid #e11d48; border-radius: 16px; padding: 16px; text-align: center; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="font-size: 12px; font-weight: 800; color: #9f1239; margin-bottom: 8px;">VÉ #${idx + 1}/${ticketCodes.length} — CHÍNH THỨC</div>
+                            <img src="${qrUrl}" alt="QR ${safeCode}" onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${fallbackQrUrl}';}" style="width: 165px; height: 165px; border-radius: 12px; border: 1px solid #cbd5e1; padding: 6px; background: #fff; margin-bottom: 10px;" />
+                            <div style="font-family: Consolas, monospace; font-size: 17px; font-weight: 800; color: #be123c; background: #fff1f2; border: 1.5px dashed #e11d48; padding: 6px 12px; border-radius: 8px; letter-spacing: 1px; margin-bottom: 12px;">
+                                ${safeCode}
+                            </div>
                         </div>
+                        <button type="button" class="btn-single-pass-download" data-code="${safeCode}" data-idx="${idx + 1}" data-total="${ticketCodes.length}">
+                            💾 Lưu Vé #${idx + 1} Vào Máy (.PNG)
+                        </button>
                     </div>
                 `;
             }).join('');
+
+            // Gắn sự kiện nút tải toàn bộ vé
+            const btnSaveAll = document.getElementById('btn-save-all-passes');
+            if (btnSaveAll) {
+                btnSaveAll.onclick = async () => {
+                    btnSaveAll.disabled = true;
+                    const originTxt = btnSaveAll.innerHTML;
+                    try {
+                        await downloadAllTicketsAsImages(ticketCodes, fallbackOrderData, (curr, total) => {
+                            btnSaveAll.textContent = `⏳ Đang lưu thẻ vé ${curr}/${total} vào máy...`;
+                        });
+                        btnSaveAll.textContent = `✓ Đã lưu ${ticketCodes.length} thẻ vé vào Album ảnh!`;
+                        setTimeout(() => {
+                            btnSaveAll.disabled = false;
+                            btnSaveAll.innerHTML = originTxt;
+                        }, 3000);
+                    } catch (err) {
+                        alert('Không thể lưu ảnh vé: ' + err.message);
+                        btnSaveAll.disabled = false;
+                        btnSaveAll.innerHTML = originTxt;
+                    }
+                };
+            }
+
+            // Gắn sự kiện nút tải từng vé riêng lẻ
+            autoTicketsList.querySelectorAll('.btn-single-pass-download').forEach(btn => {
+                btn.onclick = async () => {
+                    const code = btn.getAttribute('data-code');
+                    const idx = Number(btn.getAttribute('data-idx')) || 1;
+                    const totalQty = Number(btn.getAttribute('data-total')) || ticketCodes.length;
+                    btn.disabled = true;
+                    btn.textContent = '⏳ Đang tạo ảnh...';
+                    try {
+                        const res = await downloadTicketPassPng({
+                            ticketCode: code,
+                            ticketNumber: idx,
+                            totalTickets: totalQty,
+                            customerName: fallbackOrderData.customerName || customer,
+                            phone: fallbackOrderData.phone || phone,
+                            orderId: fallbackOrderData.orderId || orderId,
+                            eventName: EVENT_CONFIG.eventName,
+                            ticketTypeName: EVENT_CONFIG.ticketTypeName
+                        });
+                        if (res.success) {
+                            btn.textContent = '✓ Đã lưu vào máy!';
+                            setTimeout(() => {
+                                btn.disabled = false;
+                                btn.textContent = `💾 Lưu Vé #${idx} Vào Máy (.PNG)`;
+                            }, 2500);
+                        }
+                    } catch (e) {
+                        alert('Lỗi tạo ảnh vé: ' + e.message);
+                        btn.disabled = false;
+                        btn.textContent = `💾 Lưu Vé #${idx} Vào Máy (.PNG)`;
+                    }
+                };
+            });
+        }
+
+        // Nút chính Lưu Vé Về Máy ở thanh công cụ dưới cùng
+        const btnMainSavePasses = document.getElementById('btnMainSavePasses');
+        if (btnMainSavePasses) {
+            btnMainSavePasses.addEventListener('click', async () => {
+                if (latestIssuedTicketCodes.length > 0) {
+                    const btnSaveAll = document.getElementById('btn-save-all-passes');
+                    if (btnSaveAll) btnSaveAll.click();
+                    else {
+                        btnMainSavePasses.disabled = true;
+                        btnMainSavePasses.textContent = '⏳ Đang lưu thẻ vé...';
+                        await downloadAllTicketsAsImages(latestIssuedTicketCodes, fallbackOrderData);
+                        btnMainSavePasses.textContent = '✓ Đã lưu vé vào máy!';
+                        setTimeout(() => {
+                            btnMainSavePasses.disabled = false;
+                            btnMainSavePasses.textContent = '💾 Lưu Thẻ Vé Về Máy (Ảnh PNG)';
+                        }, 3000);
+                    }
+                } else {
+                    autoTicketsBox.scrollIntoView({ behavior: 'smooth' });
+                    alert('Hệ thống đang hoàn tất xác nhận thanh toán & cấp vé, vui lòng đợi vài giây nhé!');
+                }
+            });
         }
 
         const savedOrderStr = sessionStorage.getItem('pending_order_' + orderCode) || localStorage.getItem('pending_order_latest');

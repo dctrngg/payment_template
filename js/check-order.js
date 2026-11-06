@@ -99,9 +99,12 @@ function renderSingleTicketCard(ticketCode, data) {
             <p style="margin: 6px 0; font-size: 14px;"><strong>Khách hàng:</strong> ${safeName} (${safePhone})</p>
             <p style="margin: 10px 0; font-size: 14px;"><strong>Tình trạng vé:</strong> ${badgeHtml}</p>
             ${isValid && !isCheckedIn ? `
-                <div style="text-align: center; margin-top: 12px; background: #fff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                    <img src="${qrUrl}" alt="QR ${safeCode}" onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${fallbackQrUrl}';}" style="width: 155px; height: 155px;" />
-                    <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Xuất trình mã QR này tại quầy Check-in</div>
+                <div style="text-align: center; margin-top: 12px; background: #fff; padding: 14px; border-radius: 12px; border: 1.5px solid #fecdd3;">
+                    <img src="${qrUrl}" alt="QR ${safeCode}" onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${fallbackQrUrl}';}" style="width: 165px; height: 165px;" />
+                    <div style="font-size: 12px; color: #64748b; margin-top: 6px; margin-bottom: 10px;">Xuất trình mã QR này tại quầy Check-in</div>
+                    <button type="button" class="btn-download-single-card" data-ticket="${safeCode}" data-name="${safeName}" data-phone="${safePhone}" data-order="${escapeHtml(data.orderId || '')}" data-label="${safeLabel}" style="width: 100%; max-width: 280px; padding: 10px 16px; background: linear-gradient(135deg, #e11d48, #be123c); color: #fffbeb; font-weight: 800; font-size: 13px; border: 1.5px solid #fde047; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.35);">
+                        💾 Tải Thẻ Vé Về Máy (Ảnh PNG)
+                    </button>
                 </div>
             ` : ''}
         </div>
@@ -126,6 +129,7 @@ async function lookupOrder(rawKeyword) {
             const ticketSnap = await getDoc(ticketRef);
             if (ticketSnap.exists()) {
                 output.innerHTML = renderSingleTicketCard(ticketSnap.id, ticketSnap.data());
+                attachTicketDownloadHandlers();
                 return;
             }
         }
@@ -155,6 +159,7 @@ async function lookupOrder(rawKeyword) {
         const fallbackTicketSnap = await getDoc(doc(db, FIREBASE_CONFIG.ticketsCollection || "tickets", upperKeyword));
         if (fallbackTicketSnap.exists()) {
             output.innerHTML = renderSingleTicketCard(fallbackTicketSnap.id, fallbackTicketSnap.data());
+            attachTicketDownloadHandlers();
             return;
         }
 
