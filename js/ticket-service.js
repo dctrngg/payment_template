@@ -996,3 +996,288 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
         }
     };
 }
+
+
+/**
+ * ============================================================================
+ * PHẦN 6: TẠO & TẢI THẺ VÉ HÌNH ẢNH (.PNG) VỀ ALBUM MÁY (DÙNG OFFLINE ĐÊM DIỄN)
+ * ============================================================================
+ */
+
+function drawRoundRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+}
+
+/**
+ * Vẽ thẻ vé Player Pass GAME ON chất lượng cao 750x1120px bằng HTML5 Canvas
+ */
+export async function generateTicketPassBlob(ticketData) {
+    if (typeof document === 'undefined') return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 750;
+    canvas.height = 1120;
+    const ctx = canvas.getContext('2d');
+
+    // 1. Nền chuyển sắc Đêm Đỏ Crimson (Night Crimson)
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bgGrad.addColorStop(0, '#090204');
+    bgGrad.addColorStop(0.45, '#1e040a');
+    bgGrad.addColorStop(0.85, '#3d0713');
+    bgGrad.addColorStop(1, '#140206');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Điểm xuyết các ngôi sao vàng Pixel ngẫu nhiên
+    ctx.fillStyle = '#fde047';
+    const starCoords = [[60, 80], [120, 140], [680, 90], [640, 160], [80, 920], [670, 940], [90, 520], [660, 560]];
+    starCoords.forEach(([sx, sy]) => {
+        ctx.fillRect(sx, sy, 3, 3);
+        ctx.fillStyle = 'rgba(253, 224, 71, 0.4)';
+        ctx.fillRect(sx - 2, sy - 2, 7, 7);
+        ctx.fillStyle = '#fde047';
+    });
+
+    // 2. Viền khung vàng kim loại Arcade & Viền nét đứt đỏ
+    ctx.strokeStyle = '#fde047';
+    ctx.lineWidth = 4;
+    drawRoundRect(ctx, 16, 16, canvas.width - 32, canvas.height - 32, 24);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(244, 63, 94, 0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 6]);
+    drawRoundRect(ctx, 24, 24, canvas.width - 48, canvas.height - 48, 18);
+    ctx.stroke();
+    ctx.setLineDash([]); // Reset dash
+
+    // 3. Header: Pill Badge & Tiêu đề GAME ON
+    ctx.fillStyle = 'rgba(225, 29, 72, 0.35)';
+    ctx.strokeStyle = 'rgba(253, 224, 71, 0.6)';
+    ctx.lineWidth = 1.5;
+    drawRoundRect(ctx, 175, 46, 400, 32, 16);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 12px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ HÙNG VƯƠNG CONCERT 2026 • OFFICIAL PASS ★', canvas.width / 2, 67);
+
+    // Tên sự kiện: GAME ON
+    ctx.shadowColor = '#e11d48';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 44px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('🕹️ GAME ON ⭐', canvas.width / 2, 130);
+    ctx.shadowBlur = 0; // Reset shadow
+
+    ctx.fillStyle = '#fecdd3';
+    ctx.font = '600 13px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('CHƯƠNG TRÌNH CA NHẠC GÂY QUỸ TỪ THIỆN', canvas.width / 2, 156);
+
+    // 4. Khung Thông Tin Player / Người Mua Vé
+    ctx.fillStyle = 'rgba(15, 3, 7, 0.85)';
+    ctx.strokeStyle = 'rgba(251, 113, 133, 0.35)';
+    ctx.lineWidth = 1.5;
+    drawRoundRect(ctx, 45, 180, 660, 145, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    const custName = String(ticketData.customerName || 'Khách hàng').trim();
+    const phone = String(ticketData.phone || '---').trim();
+    const orderId = String(ticketData.orderId || '---').trim();
+    const ticketNum = Number(ticketData.ticketNumber) || 1;
+    const totalQty = Number(ticketData.totalTickets) || 1;
+
+    // Cột trái
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#fda4af';
+    ctx.font = 'bold 11px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('NGƯỜI MUA (PLAYER)', 70, 212);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 19px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText(custName.slice(0, 24), 70, 238);
+
+    ctx.fillStyle = '#fda4af';
+    ctx.font = 'bold 11px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('SỐ ĐIỆN THOẠI', 70, 274);
+    ctx.fillStyle = '#ffe4e6';
+    ctx.font = 'bold 15px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText(phone, 70, 296);
+
+    // Cột phải
+    ctx.fillStyle = '#fda4af';
+    ctx.font = 'bold 11px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('MÃ ĐƠN HÀNG', 420, 212);
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 15px Consolas, monospace';
+    ctx.fillText(orderId.slice(0, 18), 420, 236);
+
+    ctx.fillStyle = '#fda4af';
+    ctx.font = 'bold 11px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('HẠNG VÉ / VỊ TRÍ', 420, 274);
+    ctx.fillStyle = '#fde047';
+    ctx.font = '900 16px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText(`Player Pass #${ticketNum}/${totalQty}`, 420, 296);
+
+    // 5. Khung Trắng Chứa Mã QR (Center QR Box)
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+    ctx.shadowBlur = 25;
+    ctx.shadowOffsetY = 8;
+    drawRoundRect(ctx, 205, 355, 340, 340, 22);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Load & Vẽ ảnh QR
+    const ticketCode = String(ticketData.ticketCode || 'HVC-XXXXXX-YYYY').trim();
+    const qrUrl = getTicketQrImageUrl(ticketCode, 360);
+
+    await new Promise((resolve) => {
+        const qrImg = new Image();
+        qrImg.crossOrigin = 'anonymous';
+        qrImg.onload = () => {
+            ctx.drawImage(qrImg, 225, 375, 300, 300);
+            resolve();
+        };
+        qrImg.onerror = () => {
+            // Fallback nếu ảnh QR mạng bị lỗi: vẽ placeholder mã code
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(225, 375, 300, 300);
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 16px Consolas, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(ticketCode, canvas.width / 2, 530);
+            resolve();
+        };
+        qrImg.src = qrUrl;
+    });
+
+    // 6. Banner Mã Vé Ký Số HMAC-SHA256
+    ctx.fillStyle = '#fff1f2';
+    ctx.strokeStyle = '#e11d48';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    drawRoundRect(ctx, 95, 725, 560, 88, 16);
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#9f1239';
+    ctx.font = 'bold 11px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('MÃ CHECK-IN BẢO MẬT (KÝ SỐ HMAC-SHA256)', canvas.width / 2, 750);
+
+    ctx.fillStyle = '#be123c';
+    ctx.font = '900 30px Consolas, "Courier New", monospace';
+    ctx.fillText(ticketCode, canvas.width / 2, 790);
+
+    // 7. Footer Lưu Ý An Toàn & Dùng Offline
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 14px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('★ Xuất trình ảnh này tại cổng soát vé • 01 lần quét duy nhất ★', canvas.width / 2, 850);
+
+    ctx.fillStyle = '#fda4af';
+    ctx.font = '500 12px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('Ảnh này đã lưu trọn vẹn mã QR — Bạn có thể quét OFFLINE khi mất mạng 4G/Wifi', canvas.width / 2, 875);
+
+    // Đường kẻ ngang mờ
+    ctx.strokeStyle = 'rgba(251, 113, 133, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(95, 905);
+    ctx.lineTo(655, 905);
+    ctx.stroke();
+
+    // Thông tin liên hệ ở chân ảnh
+    ctx.fillStyle = '#fecdd3';
+    ctx.font = '600 11.5px "Be Vietnam Pro", -apple-system, sans-serif';
+    ctx.fillText('Hotline: 0916342935 (Ms. Diệu) • 0945286712 (Ms. Uyên) • IG: @hungvuong.concert', canvas.width / 2, 935);
+
+    ctx.fillStyle = 'rgba(254, 205, 211, 0.6)';
+    ctx.font = '10.5px Consolas, monospace';
+    ctx.fillText(`HUNG VUONG CONCERT: GAME ON • ISSUED AT ${new Date().toLocaleDateString('vi-VN')}`, canvas.width / 2, 958);
+
+    return new Promise((resolve) => {
+        canvas.toBlob(resolve, 'image/png');
+    });
+}
+
+/**
+ * Tải 1 thẻ vé về máy (Hỗ trợ mở hộp thoại "Lưu hình ảnh" trên iOS/Android hoặc tải trực tiếp file PNG)
+ */
+export async function downloadTicketPassPng(ticketData) {
+    const blob = await generateTicketPassBlob(ticketData);
+    if (!blob) return { success: false, reason: 'Không thể tạo ảnh vé.' };
+
+    const ticketCode = String(ticketData.ticketCode || 'pass').trim();
+    const ticketNum = Number(ticketData.ticketNumber) || 1;
+    const fileName = `HVC_GAME_ON_Ve_${ticketNum}_${ticketCode}.png`;
+    const file = new File([blob], fileName, { type: 'image/png' });
+
+    // 1. Thử dùng Web Share API (Trên Safari iOS hoặc Chrome Android cho phép lưu thẳng vào Photos)
+    if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: `Vé ${ticketCode} - Hùng Vương Concert`,
+                text: `Thẻ vé QR ${ticketCode} - Hùng Vương Concert: GAME ON`
+            });
+            return { success: true, method: 'share' };
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                return { success: true, method: 'cancelled' };
+            }
+        }
+    }
+
+    // 2. Fallback tải file ảnh .png trực tiếp qua link ảo
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    return { success: true, method: 'download' };
+}
+
+/**
+ * Tải toàn bộ danh sách vé về máy (Có delay để tránh trình duyệt chặn tải hàng loạt)
+ */
+export async function downloadAllTicketsAsImages(ticketCodes, orderData, onProgress) {
+    if (!Array.isArray(ticketCodes) || ticketCodes.length === 0) return;
+
+    for (let i = 0; i < ticketCodes.length; i++) {
+        if (onProgress) onProgress(i + 1, ticketCodes.length);
+        await downloadTicketPassPng({
+            ticketCode: ticketCodes[i],
+            ticketNumber: i + 1,
+            totalTickets: ticketCodes.length,
+            customerName: orderData.customerName || orderData.name || 'Khách hàng',
+            phone: orderData.phone || '',
+            orderId: orderData.orderId || orderData.id || '',
+            eventName: EVENT_CONFIG.eventName,
+            ticketTypeName: EVENT_CONFIG.ticketTypeName
+        });
+
+        if (i < ticketCodes.length - 1) {
+            await new Promise((r) => setTimeout(r, 450));
+        }
+    }
+}

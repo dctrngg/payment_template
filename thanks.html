@@ -247,6 +247,53 @@
             transition: all 0.2s;
         }
 
+                .btn-save-all-passes {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #e11d48, #be123c);
+            color: #fffbeb;
+            border: 1.5px solid #fde047;
+            padding: 10px 22px;
+            border-radius: 99px;
+            font-size: 13.5px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(225, 29, 72, 0.35);
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-save-all-passes:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(225, 29, 72, 0.5);
+            filter: brightness(1.08);
+        }
+
+        .btn-single-pass-download {
+            margin-top: 10px;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #fff1f2;
+            color: #be123c;
+            border: 1.5px solid #e11d48;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 12.5px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-single-pass-download:hover {
+            background: #e11d48;
+            color: #fffbeb;
+        }
+
         .btn-primary {
             background: linear-gradient(135deg, #0066ff, #00c6ff);
             color: #ffffff;
@@ -404,7 +451,7 @@
 
     <script type="module">
         import { EVENT_CONFIG, EMAIL_CONFIG } from "./js/config.js";
-        import { autoFulfillPayosOrder, getTicketQrImageUrl } from "./js/ticket-service.js";
+        import { autoFulfillPayosOrder, getTicketQrImageUrl, downloadTicketPassPng, downloadAllTicketsAsImages } from "./js/ticket-service.js";
         import { escapeHtml } from "./js/firebase-core.js";
 
         document.title = `Biên Nhận Đặt Vé - ${EVENT_CONFIG.eventName}`;

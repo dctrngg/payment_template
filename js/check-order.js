@@ -9,7 +9,7 @@
 
 import { EVENT_CONFIG, FIREBASE_CONFIG } from "./config.js";
 import { db, doc, getDoc, escapeHtml } from "./firebase-core.js";
-import { getTicketQrImageUrl, autoFulfillPayosOrder } from "./ticket-service.js";
+import { getTicketQrImageUrl, autoFulfillPayosOrder, downloadTicketPassPng } from "./ticket-service.js";
 
 const output = document.querySelector('.output');
 const searchInput = document.getElementById('searchInput');
@@ -181,4 +181,45 @@ const initialCode = urlParams.get('code') || urlParams.get('id');
 if (initialCode && searchInput) {
     searchInput.value = initialCode;
     lookupOrder(initialCode);
+}
+
+
+function attachTicketDownloadHandlers() {
+    if (!output) return;
+    output.querySelectorAll('.btn-download-single-card').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const ticketCode = btn.getAttribute('data-ticket');
+            const custName = btn.getAttribute('data-name');
+            const phone = btn.getAttribute('data-phone');
+            const orderId = btn.getAttribute('data-order');
+            const label = btn.getAttribute('data-label');
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Đang tạo ảnh thẻ vé...';
+
+            try {
+                const res = await downloadTicketPassPng({
+                    ticketCode: ticketCode,
+                    ticketNumber: 1,
+                    totalTickets: 1,
+                    customerName: custName,
+                    phone: phone,
+                    orderId: orderId,
+                    eventName: EVENT_CONFIG.eventName,
+                    ticketTypeName: label || EVENT_CONFIG.ticketTypeName
+                });
+                if (res.success) {
+                    btn.textContent = '✓ Đã lưu thẻ vé vào máy!';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = '💾 Tải Thẻ Vé Về Máy (Ảnh PNG)';
+                    }, 2500);
+                }
+            } catch (err) {
+                alert('Không thể tạo ảnh vé: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = '💾 Tải Thẻ Vé Về Máy (Ảnh PNG)';
+            }
+        });
+    });
 }
