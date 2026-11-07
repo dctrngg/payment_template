@@ -713,7 +713,7 @@ function fetchQrBlobWithFallback(ticketCode) {
 }
 
 // ==============================================================================
-// 6. XÁC NHẬN & LIÊN KẾT WEBHOOK VỚI MÁY CHỦ PAYOS (CHỐNG CƯỚP WEBHOOK)
+// 6. XÁC NHẬN & LIÊN KẾT WEBHOOK VỚI MÁY CHỦ PAYOS (CÓ WARM-UP CHỐNG TIMEOUT 10S)
 // ==============================================================================
 function confirmPayosWebhook() {
   var url = String(WEBHOOK_URL_TO_CONFIRM || "").trim();
@@ -721,6 +721,34 @@ function confirmPayosWebhook() {
     Logger.log("❌ LỖI: Vui lòng điền đúng URL Web App Google Apps Script vào WEBHOOK_URL_TO_CONFIRM!");
     return;
   }
+
+  // BƯỚC 1: Ping khởi động làm nóng máy chủ Apps Script (Warm-up) để tránh lỗi PayOS timeout 10000ms
+  // đồng thời kiểm tra xem URL đã được cập nhật lên Phiên bản mới (New version) hay chưa.
+  try {
+    var warmResp = UrlFetchApp.fetch(url, {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        code: "00",
+        desc: "success",
+        data: { orderCode: 123, amount: 3000, description: "VQRIO123" },
+        signature: "warmup_ping"
+      }),
+      muteHttpExceptions: true
+    });
+    var warmText = warmResp.getContentText();
+    Logger.log("⚡ Kết quả Warm-up kiểm tra URL (" + warmResp.getResponseCode() + "): " + warmText);
+
+    if (warmText.indexOf('"code":"00"') === -1) {
+      Logger.log("⚠️ CẢNH BÁO QUAN TRỌNG: Đường dẫn WEBHOOK_URL_TO_CONFIRM hiện vẫn đang chạy bản code CŨ (chưa có hàm nhận Webhook PayOS)!");
+      Logger.log("👉 CÁCH KHẮC PHỤC: Nhấn nút 'Triển khai' (Deploy) -> 'Quản lý bản triển khai' -> Bấm biểu tượng cây bút ✏️ -> Chọn 'Phiên bản mới' (New version) -> Nhấn 'Triển khai', hoặc nếu bạn tạo bản triển khai mới thì copy URL '/exec' mới dán vào dòng 18 (WEBHOOK_URL_TO_CONFIRM) rồi nhấn Ctrl+S và Chạy lại!");
+      return;
+    }
+  } catch (warmErr) {
+    Logger.log("Lỗi kiểm tra Warm-up URL: " + warmErr);
+  }
+
+  // BƯỚC 2: Gọi PayOS xác nhận Webhook sau khi container Apps Script đã được làm nóng (< 0.5s)
   var res = handleApiConfirmWebhook(url);
   Logger.log("Kết quả từ PayOS: " + res.getContent());
 }
@@ -736,6 +764,21 @@ function handleApiConfirmWebhook(webhookUrl) {
   }
 
   try {
+    // Làm nóng container Google Apps Script trước khi gọi PayOS confirm-webhook để tránh timeout 10000ms
+    try {
+      UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify({
+          code: "00",
+          desc: "success",
+          data: { orderCode: 123, amount: 3000, description: "VQRIO123" },
+          signature: "warmup_ping"
+        }),
+        muteHttpExceptions: true
+      });
+    } catch (_) {}
+
     var response = UrlFetchApp.fetch("https://api-merchant.payos.vn/confirm-webhook", {
       method: "post",
       contentType: "application/json",
