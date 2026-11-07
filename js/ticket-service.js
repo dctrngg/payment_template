@@ -894,76 +894,86 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
     const maskedList = ticketCodes.map(maskTicketCode);
 
     // 3. Chỉ khi PayOS xác nhận ĐÃ THANH TOÁN (isPaid === true) mới ghi đơn APPROVED & vé vào Firestore
-    let firestoreSynced = false;
-    try {
-        const orderPayload = {
-            customerName: orderObj.customerName,
-            name: orderObj.name,
-            phone: orderObj.phone,
-            email: orderObj.email,
-            facebook: orderObj.facebook,
-            referrer: orderObj.referrer,
-            voucherCode: orderObj.voucherCode,
-            quantity: verifiedQty,
-            ticketPrice: EVENT_CONFIG.ticketPrice,
-            totalAmount: paidAmount,
-            payosOrderCode: payosOrderCode,
-            ticketType: "e-ticket",
-            paymentMethod: "payos_qr",
-            status: "APPROVED",
-            verifiedBy: "PayOS Auto (100%)",
-            approvedBy: "PayOS Auto (100%)",
-            maskedTickets: maskedList,
-            issuedTicketCount: ticketCodes.length,
-            approvedAt: serverTimestamp()
-        };
+    // Nếu Webhook PayOS đã ghi sẵn đơn APPROVED đủ số vé trước đó, không ghi đè lại để tiết kiệm quota & bảo toàn trạng thái checkedIn
+    const alreadyFulfilledInFirestore = Boolean(
+        orderSnap &&
+        orderSnap.exists() &&
+        orderSnap.data().status === "APPROVED" &&
+        Number(orderSnap.data().issuedTicketCount) === ticketCodes.length
+    );
 
-        if (!orderSnap || !orderSnap.exists()) {
-            orderPayload.createdAt = serverTimestamp();
-            await setDoc(orderRef, orderPayload, { merge: true });
-        } else {
-            orderPayload.ticketCodes = deleteField();
-            await updateDoc(orderRef, orderPayload);
-        }
-
-        for (let i = 0; i < ticketCodes.length; i++) {
-            const code = ticketCodes[i];
-            const ticketNumber = i + 1;
-            await setDoc(doc(db, ticketsColName, code), {
-                ticketCode: code,
-                orderId: orderId,
-                ticketNumber: ticketNumber,
-                ticketLabel: `Vé ${ticketNumber}/${verifiedQty}`,
-                customerName: orderObj.name,
+    let firestoreSynced = alreadyFulfilledInFirestore;
+    if (!alreadyFulfilledInFirestore) {
+        try {
+            const orderPayload = {
+                customerName: orderObj.customerName,
+                name: orderObj.name,
                 phone: orderObj.phone,
                 email: orderObj.email,
-                eventName: EVENT_CONFIG.eventName,
-                ticketTypeName: EVENT_CONFIG.ticketTypeName,
-                unitPrice: EVENT_CONFIG.ticketPrice,
-                status: "VALID",
-                checkedIn: false,
-                checkedInAt: null,
-                issuedBy: "PAYOS_AUTO",
-                payosOrderCode: payosOrderCode,
-                issuedAt: serverTimestamp()
-            }, { merge: true });
-        }
-
-        try {
-            await setDoc(doc(db, orderTicketsColName, orderId), {
-                orderId: orderId,
-                customerName: orderObj.name,
-                email: orderObj.email,
+                facebook: orderObj.facebook,
+                referrer: orderObj.referrer,
+                voucherCode: orderObj.voucherCode,
                 quantity: verifiedQty,
-                ticketCodes: ticketCodes,
-                issuedBy: "PAYOS_AUTO",
-                issuedAt: serverTimestamp()
-            }, { merge: true });
-        } catch (_) {}
+                ticketPrice: EVENT_CONFIG.ticketPrice,
+                totalAmount: paidAmount,
+                payosOrderCode: payosOrderCode,
+                ticketType: "e-ticket",
+                paymentMethod: "payos_qr",
+                status: "APPROVED",
+                verifiedBy: "PayOS Auto (100%)",
+                approvedBy: "PayOS Auto (100%)",
+                maskedTickets: maskedList,
+                issuedTicketCount: ticketCodes.length,
+                approvedAt: serverTimestamp()
+            };
 
-        firestoreSynced = true;
-    } catch (fsErr) {
-        console.warn("Ghi vé vào Firestore:", fsErr.message);
+            if (!orderSnap || !orderSnap.exists()) {
+                orderPayload.createdAt = serverTimestamp();
+                await setDoc(orderRef, orderPayload, { merge: true });
+            } else {
+                orderPayload.ticketCodes = deleteField();
+                await updateDoc(orderRef, orderPayload);
+            }
+
+            for (let i = 0; i < ticketCodes.length; i++) {
+                const code = ticketCodes[i];
+                const ticketNumber = i + 1;
+                await setDoc(doc(db, ticketsColName, code), {
+                    ticketCode: code,
+                    orderId: orderId,
+                    ticketNumber: ticketNumber,
+                    ticketLabel: `Vé ${ticketNumber}/${verifiedQty}`,
+                    customerName: orderObj.name,
+                    phone: orderObj.phone,
+                    email: orderObj.email,
+                    eventName: EVENT_CONFIG.eventName,
+                    ticketTypeName: EVENT_CONFIG.ticketTypeName,
+                    unitPrice: EVENT_CONFIG.ticketPrice,
+                    status: "VALID",
+                    checkedIn: false,
+                    checkedInAt: null,
+                    issuedBy: "PAYOS_AUTO",
+                    payosOrderCode: payosOrderCode,
+                    issuedAt: serverTimestamp()
+                }, { merge: true });
+            }
+
+            try {
+                await setDoc(doc(db, orderTicketsColName, orderId), {
+                    orderId: orderId,
+                    customerName: orderObj.name,
+                    email: orderObj.email,
+                    quantity: verifiedQty,
+                    ticketCodes: ticketCodes,
+                    issuedBy: "PAYOS_AUTO",
+                    issuedAt: serverTimestamp()
+                }, { merge: true });
+            } catch (_) {}
+
+            firestoreSynced = true;
+        } catch (fsErr) {
+            console.warn("Ghi vé vào Firestore:", fsErr.message);
+        }
     }
 
     // 4. Tự động bắn Email vé kèm mã QR chạy ngầm (Non-blocking) để KHÔNG chặn hiển thị vé ra màn hình
