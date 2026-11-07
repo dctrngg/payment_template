@@ -3,12 +3,21 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // =========================================================================
-    // 0. HÀM KIỂM TRA QUYỀN SUPER ADMIN TỪ SERVER (HỖ TRỢ NHIỀU SUPER ADMIN)
+    // 0. HÀM KIỂM TRA QUYỀN SUPER ADMIN TỪ SERVER (CHỐNG LEO THANG ĐẶC QUYỀN)
     // =========================================================================
     // Quyền Super Admin được đối chiếu trực tiếp với UID gốc hoặc danh sách
     // superAdminEmails lưu trong /system_secrets/bootstrap trên Server.
+    // Nhân viên soát vé / Nhân viên soi Bill đăng nhập sẽ KHÔNG có quyền Super Admin.
     function isSuperAdmin() {
-      return request.auth != null;
+      return request.auth != null && (
+        !exists(/databases/$(database)/documents/system_secrets/bootstrap) ||
+        get(/databases/$(database)/documents/system_secrets/bootstrap).data.superAdminUid == request.auth.uid ||
+        (
+          request.auth.token.email != null &&
+          'superAdminEmails' in get(/databases/$(database)/documents/system_secrets/bootstrap).data &&
+          request.auth.token.email.lower() in get(/databases/$(database)/documents/system_secrets/bootstrap).data.superAdminEmails
+        )
+      );
     }
 
     function isStaffAuthenticated() {
@@ -41,7 +50,7 @@ service cloud.firestore {
       let validQuantityAndStatus =
         qty is int && qty >= 1 && qty <= 5 &&
         (
-          (data.status in ['APPROVED', 'approved'] && 'payosOrderCode' in data) ||
+          (data.status in ['APPROVED', 'approved'] && 'payosOrderCode' in data && data.payosOrderCode is int && data.payosOrderCode > 0) ||
           (data.status in ['pending', 'PENDING'])
         );
 
@@ -67,14 +76,10 @@ service cloud.firestore {
     // =========================================================================
     // 2. BẢNG KHÓA BÍ MẬT & ĐỊNH DANH SUPER ADMIN ('system_secrets')
     // =========================================================================
-    // - bootstrap: Chỉ cho phép khởi tạo 1 lần duy nhất khi chưa có Super Admin.
-    //   Sau khi đã tạo, khóa vĩnh viễn (allow update, delete: if false).
     match /system_secrets/bootstrap {
       allow get: if isStaffAuthenticated();
       allow create: if isStaffAuthenticated() &&
         request.resource.data.superAdminUid == request.auth.uid;
-      // Cho phép Super Admin thêm/bớt danh sách email đồng Super Admin (VD: 3 tài khoản),
-      // nhưng không ai được xóa quyền của Owner gốc (superAdminUid)
       allow update: if isSuperAdmin() &&
         request.resource.data.superAdminUid == resource.data.superAdminUid;
       allow delete: if false;
@@ -83,7 +88,7 @@ service cloud.firestore {
     // - config: Chứa Khóa Bí Mật HMAC-SHA256 & Danh sách Webhook gửi Email.
     //   CHỈ DUY NHẤT SUPER ADMIN MỚI ĐỌC/GHI ĐƯỢC (Nhân viên mở F12 bị chặn 100%).
     match /system_secrets/config {
-      allow read, write: if isStaffAuthenticated();
+      allow read, write: if isSuperAdmin();
     }
 
     // =========================================================================
@@ -99,7 +104,8 @@ service cloud.firestore {
         'payosOrderCode' in resource.data &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status', 'verifiedBy', 'verifiedAt', 'approvedBy', 'approvedAt',
-          'maskedTickets', 'issuedTicketCount', 'ticketCodes', 'emailSent', 'emailSentAt'
+          'maskedTickets', 'issuedTicketCount', 'ticketCodes', 'emailSent', 'emailSentAt',
+          'quantity', 'totalAmount'
         ]) &&
         request.resource.data.status in ['APPROVED', 'BILL_VERIFIED']
       );
@@ -109,15 +115,15 @@ service cloud.firestore {
     // =========================================================================
     // 4. COLLECTION 'order_tickets': BẢNG LƯU MÃ VÉ THEO ĐƠN (CHỈ SUPER ADMIN ĐỌC)
     // =========================================================================
-    // Tách riêng mã vé thật sang bảng này để Nhân viên đối soát Bill dù mở F12
-    // đọc bảng 'orders' cũng KHÔNG BAO GIỜ nhìn thấy mã vé của khách!
+    // Tách riêng mã vé thật sang bảng này để Nhân viên đối soát Bill hoặc người ngoài
+    // mở F12 đọc bảng 'orders' cũng KHÔNG BAO GIỜ nhìn thấy mã vé thật của khách!
     match /order_tickets/{orderId} {
-      allow read: if isStaffAuthenticated();
-      allow create, update: if isStaffAuthenticated() || (
+      allow read, delete: if isSuperAdmin();
+      allow create, update: if isSuperAdmin() || (
         exists(/databases/$(database)/documents/orders/$(orderId)) &&
-        'payosOrderCode' in get(/databases/$(database)/documents/orders/$(orderId)).data
+        'payosOrderCode' in get(/databases/$(database)/documents/orders/$(orderId)).data &&
+        get(/databases/$(database)/documents/orders/$(orderId)).data.status == 'APPROVED'
       );
-      allow delete: if isStaffAuthenticated();
     }
 
     // =========================================================================
@@ -127,17 +133,23 @@ service cloud.firestore {
       // Chỉ ai biết chính xác mã vé (khách nhận qua Email / quét QR tại cổng) mới get được 1 vé
       allow get: if true;
 
-      // Cho phép Admin đã đăng nhập truy vấn danh sách vé
+      // Cho phép nhân sự đã đăng nhập truy vấn danh sách vé trên Dashboard
       allow list: if isStaffAuthenticated();
-      allow delete: if isStaffAuthenticated();
+      allow delete: if isSuperAdmin();
 
       // Cho phép Super Admin hoặc hệ thống Tự động PayOS phát hành vé hợp lệ
+      // Ràng buộc chặt: Định dạng mã vé chuẩn & số thứ tự vé không vượt quá quantity của đơn đã APPROVED
       allow create: if isSuperAdmin() || (
+        ticketId.matches('^HVC-[0-9A-Z]{6}-[0-9A-F]{4}$') &&
         request.resource.data.ticketCode == ticketId &&
         request.resource.data.status == 'VALID' &&
         request.resource.data.checkedIn == false &&
         request.resource.data.issuedBy == 'PAYOS_AUTO' &&
-        exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId))
+        exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId)) &&
+        get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'APPROVED' &&
+        request.resource.data.ticketNumber is int &&
+        request.resource.data.ticketNumber >= 1 &&
+        request.resource.data.ticketNumber <= get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.quantity
       );
 
       // Nhân viên soát cổng chỉ được phép đánh dấu checkedIn = true khi quét QR

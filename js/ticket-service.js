@@ -5,7 +5,7 @@
  * ==============================================================================
  */
 
-import { EVENT_CONFIG, FIREBASE_CONFIG, TICKET_SECURITY_CONFIG, EMAIL_CONFIG } from "./config.js";
+import { EVENT_CONFIG, FIREBASE_CONFIG, TICKET_SECURITY_CONFIG, EMAIL_CONFIG, VOUCHER_CODES } from "./config.js";
 import {
     db,
     collection,
@@ -168,20 +168,25 @@ export async function checkServerRole(user) {
             ? data.superAdminEmails.map(e => String(e).trim().toLowerCase())
             : (data.superAdminEmail ? [String(data.superAdminEmail).trim().toLowerCase()] : []);
 
+        const cleanUserEmail = String(user.email || "").trim().toLowerCase();
+        const isOwnerUid = Boolean(data.superAdminUid && user.uid === data.superAdminUid);
+        const isListedSuperEmail = Boolean(cleanUserEmail && emailList.includes(cleanUserEmail));
+        const isSuper = isOwnerUid || isListedSuperEmail;
+
         return {
-            role: "SUPER_ADMIN",
-            isSuperAdmin: true,
+            role: isSuper ? "SUPER_ADMIN" : "REVIEWER",
+            isSuperAdmin: isSuper,
             canClaimSuperAdmin: false,
-            superAdminEmail: data.superAdminEmail || user.email,
-            superAdminEmails: emailList
+            superAdminEmail: data.superAdminEmail || "",
+            superAdminEmails: isSuper ? emailList : []
         };
     } catch (err) {
         console.warn("Không thể kiểm tra bootstrap document:", err);
         return {
-            role: "SUPER_ADMIN",
-            isSuperAdmin: true,
+            role: "REVIEWER",
+            isSuperAdmin: false,
             canClaimSuperAdmin: false,
-            superAdminEmails: [user.email]
+            superAdminEmails: []
         };
     }
 }
@@ -395,13 +400,13 @@ export async function approveAndIssueTickets(order, secretKey, existingRealCodes
         issuedAt: serverTimestamp()
     }, { merge: true });
 
-    // 3. Cập nhật bảng "orders/{orderId}": Chỉ lưu mã đã che mờ (maskedTickets) và xóa ticketCodes thật (nếu có từ bản cũ)
+    // 3. Cập nhật bảng "orders/{orderId}": Chỉ lưu mã đã che mờ (maskedTickets) và xóa ticketCodes thật (chống lộ vé qua getDoc công khai)
     const maskedList = ticketCodes.map(maskTicketCode);
     await updateDoc(doc(db, ordersColName, order.id), {
         status: "APPROVED",
         maskedTickets: maskedList,
         issuedTicketCount: ticketCodes.length,
-        ticketCodes: ticketCodes,
+        ticketCodes: deleteField(),
         approvedAt: serverTimestamp()
     });
 
@@ -584,6 +589,7 @@ export async function sendTicketEmail(order, ticketCodes = [], rawWebhookUrls = 
                         htmlBody: htmlBody,
                         customerName: order.name,
                         orderId: order.id,
+                        payosOrderCode: order.payosOrderCode || "",
                         ticketCodes: ticketCodes
                     })
                 });
@@ -856,7 +862,8 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
 
     // 1. Đối soát trực tiếp với máy chủ PayOS qua Google Apps Script Bridge
     const payosRes = await verifyPayosOrderPayment(payosOrderCode, rawWebhookUrls);
-    if (!payosRes.isPaid) {
+    const paidAmount = Number(payosRes.amountPaid || payosRes.amount || 0);
+    if (!payosRes.isPaid || paidAmount <= 0) {
         // Chưa thanh toán thành công -> Tuyệt đối không ghi đơn vào Firestore!
         return {
             isPaid: false,
@@ -866,13 +873,30 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
         };
     }
 
+    // BẢO MẬT CHỐNG SỬA SỐ LƯỢNG VÉ TRÊN URL ("Mua 1 vé, Sửa URL thành 5 vé"):
+    // Tính toán đơn giá hợp lệ cho 1 vé (kể cả khi áp dụng mã giảm giá) và giới hạn số vé tối đa theo đúng số tiền thực nhận trên PayOS (paidAmount)
+    let unitEffectivePrice = Number(EVENT_CONFIG.ticketPrice) || 1000;
+    const upperVoucher = String(orderObj.voucherCode || "").trim().toUpperCase();
+    if (upperVoucher && VOUCHER_CODES && VOUCHER_CODES[upperVoucher]) {
+        const vCfg = VOUCHER_CODES[upperVoucher];
+        if (vCfg.type === "percent") {
+            unitEffectivePrice = Math.round((unitEffectivePrice * (100 - Number(vCfg.value || 0))) / 100);
+        } else if (vCfg.type === "fixed_per_ticket") {
+            unitEffectivePrice = Math.max(500, unitEffectivePrice - Number(vCfg.value || 0));
+        }
+    }
+    const maxPaidQty = Math.max(1, Math.min(EVENT_CONFIG.maxQuantityPerOrder || 5, Math.floor(paidAmount / Math.max(500, unitEffectivePrice))));
+    const verifiedQty = Math.min(qty, maxPaidQty);
+    orderObj.quantity = verifiedQty;
+    orderObj.totalAmount = paidAmount;
+
     // 2. Lấy mã tham chiếu giao dịch ngân hàng (FT...) từ PayOS để tạo chữ ký vé tất định
     const txRef = (Array.isArray(payosRes.transactions) && payosRes.transactions.length > 0 && payosRes.transactions[0].reference)
         ? String(payosRes.transactions[0].reference).trim()
         : "PAID";
 
     const ticketCodes = [];
-    for (let i = 1; i <= qty; i++) {
+    for (let i = 1; i <= verifiedQty; i++) {
         const code = await generateDeterministicPayosTicketCode(orderId, i, payosOrderCode, txRef);
         ticketCodes.push(code);
     }
@@ -889,9 +913,9 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
             facebook: orderObj.facebook,
             referrer: orderObj.referrer,
             voucherCode: orderObj.voucherCode,
-            quantity: qty,
+            quantity: verifiedQty,
             ticketPrice: EVENT_CONFIG.ticketPrice,
-            totalAmount: orderObj.totalAmount,
+            totalAmount: paidAmount,
             payosOrderCode: payosOrderCode,
             ticketType: "e-ticket",
             paymentMethod: "payos_qr",
@@ -900,7 +924,6 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
             approvedBy: "PayOS Auto (100%)",
             maskedTickets: maskedList,
             issuedTicketCount: ticketCodes.length,
-            ticketCodes: ticketCodes,
             approvedAt: serverTimestamp()
         };
 
@@ -908,6 +931,7 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
             orderPayload.createdAt = serverTimestamp();
             await setDoc(orderRef, orderPayload, { merge: true });
         } else {
+            orderPayload.ticketCodes = deleteField();
             await updateDoc(orderRef, orderPayload);
         }
 
@@ -918,7 +942,7 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
                 ticketCode: code,
                 orderId: orderId,
                 ticketNumber: ticketNumber,
-                ticketLabel: `Vé ${ticketNumber}/${qty}`,
+                ticketLabel: `Vé ${ticketNumber}/${verifiedQty}`,
                 customerName: orderObj.name,
                 phone: orderObj.phone,
                 email: orderObj.email,
@@ -939,7 +963,7 @@ export async function autoFulfillPayosOrder(orderId, orderCodeFallback = "", raw
                 orderId: orderId,
                 customerName: orderObj.name,
                 email: orderObj.email,
-                quantity: qty,
+                quantity: verifiedQty,
                 ticketCodes: ticketCodes,
                 issuedBy: "PAYOS_AUTO",
                 issuedAt: serverTimestamp()

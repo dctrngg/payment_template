@@ -2,9 +2,10 @@
  * ==============================================================================
  * js/check-order.js - Tra cứu trạng thái Đơn Đặt Vé & Mã Vé Điện Tử (QR)
  * ==============================================================================
- * Hỗ trợ tra cứu bằng cả:
- * 1. Mã Đơn Hàng (Order ID): Hiển thị trạng thái thanh toán & mã vé đã che mờ bảo mật.
- * 2. Mã Vé Check-in (VD: HVC-8K4P9X-E3A1 nhận qua Email): Hiển thị mã QR Check-in.
+ * Hỗ trợ tra cứu bảo mật:
+ * 1. Mã Đơn Hàng (Order ID): Hiển thị trạng thái thanh toán, che mờ SĐT/Email & Mã vé
+ *    (Chống lộ thông tin/mã vé khi khách đăng ảnh biên nhận có mã ORD-... lên mạng xã hội).
+ * 2. Mã Vé Check-in (VD: HVC-8K4P9X-E3A1 nhận qua Email): Hiển thị mã QR & nút tải ảnh PNG.
  */
 
 import { EVENT_CONFIG, FIREBASE_CONFIG } from "./config.js";
@@ -16,6 +17,21 @@ const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchButton');
 
 document.title = `Tra Cứu Đơn Vé - ${EVENT_CONFIG.eventName}`;
+
+function maskPhone(phone) {
+    const clean = String(phone || '').trim();
+    if (clean.length < 7) return '***';
+    return `${clean.slice(0, 3)}****${clean.slice(-3)}`;
+}
+
+function maskEmail(email) {
+    const clean = String(email || '').trim();
+    const parts = clean.split('@');
+    if (parts.length !== 2) return '***';
+    const name = parts[0];
+    const maskedName = name.length <= 2 ? `${name[0] || '*'}***` : `${name.slice(0, 2)}***`;
+    return `${maskedName}@${parts[1]}`;
+}
 
 function renderOrderCard(orderId, data) {
     const rawStatus = String(data.status || '').toUpperCase();
@@ -35,8 +51,8 @@ function renderOrderCard(orderId, data) {
 
     const safeId = escapeHtml(orderId);
     const safeName = escapeHtml(data.customerName || data.name || '---');
-    const safePhone = escapeHtml(data.phone || '---');
-    const safeEmail = escapeHtml(data.email || '---');
+    const safePhoneMasked = escapeHtml(maskPhone(data.phone));
+    const safeEmailMasked = escapeHtml(maskEmail(data.email));
     const safeQty = Number(data.quantity) || 1;
     const safeTotal = (Number(data.totalAmount) || EVENT_CONFIG.ticketPrice).toLocaleString('vi-VN');
     const maskedTickets = Array.isArray(data.maskedTickets) ? data.maskedTickets : [];
@@ -45,13 +61,13 @@ function renderOrderCard(orderId, data) {
         ? `
             <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
                 <p style="font-size: 13.5px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">
-                    🔒 Danh sách vé đã phát hành (Đã ẩn một phần để bảo mật):
+                    🔒 Danh sách vé đã phát hành (Đã ẩn mã bảo mật chống đánh cắp vé):
                 </p>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
                     ${maskedTickets.map(m => `<span style="background: #e2e8f0; color: #0f172a; font-family: Consolas, monospace; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 6px;">${escapeHtml(m)}</span>`).join('')}
                 </div>
                 <p style="font-size: 12.5px; color: #475569; line-height: 1.45;">
-                    📧 Toàn bộ <strong>Mã Vé đầy đủ kèm QR Check-in</strong> đã được gửi riêng tới hộp thư <strong>${safeEmail}</strong> của bạn. Bạn có thể nhập Mã Vé trong email vào ô tìm kiếm phía trên để tải lại mã QR.
+                    📧 Toàn bộ <strong>Mã Vé đầy đủ kèm QR Check-in</strong> chỉ được gửi riêng tới hộp thư <strong>${safeEmailMasked}</strong> của người mua. Hãy mở Email lấy Mã Vé (VD: <code>HVC-...</code>) nhập vào ô tìm kiếm phía trên để tải lại ảnh thẻ vé QR.
                 </p>
             </div>
         `
@@ -62,8 +78,8 @@ function renderOrderCard(orderId, data) {
             <h3 style="font-size: 15px; color: #e11d48; margin-bottom: 10px;">MÃ ĐƠN: ${safeId}</h3>
             <p style="margin: 6px 0; font-size: 14px;"><strong>Sự kiện:</strong> ${escapeHtml(EVENT_CONFIG.eventName)}</p>
             <p style="margin: 6px 0; font-size: 14px;"><strong>Họ và Tên:</strong> ${safeName}</p>
-            <p style="margin: 6px 0; font-size: 14px;"><strong>Số điện thoại:</strong> ${safePhone}</p>
-            <p style="margin: 6px 0; font-size: 14px;"><strong>Email nhận vé:</strong> ${safeEmail}</p>
+            <p style="margin: 6px 0; font-size: 14px;"><strong>Số điện thoại:</strong> ${safePhoneMasked}</p>
+            <p style="margin: 6px 0; font-size: 14px;"><strong>Email nhận vé:</strong> ${safeEmailMasked}</p>
             <p style="margin: 6px 0; font-size: 14px;"><strong>Số lượng vé:</strong> ${safeQty} vé (${safeTotal} VNĐ)</p>
             <p style="margin: 10px 0 0 0; font-size: 14px;"><strong>Trạng thái:</strong> <span style="color: ${statusColor}; font-weight: 700;">${statusText}</span></p>
             ${maskedListHtml}
@@ -76,7 +92,7 @@ function renderSingleTicketCard(ticketCode, data) {
     const isCheckedIn = Boolean(data.checkedIn);
     const safeCode = escapeHtml(ticketCode);
     const safeName = escapeHtml(data.customerName || '---');
-    const safePhone = escapeHtml(data.phone || '---');
+    const safePhone = escapeHtml(maskPhone(data.phone));
     const safeLabel = escapeHtml(data.ticketLabel || 'Vé sự kiện');
     const qrUrl = getTicketQrImageUrl(ticketCode, 200);
     const fallbackQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=${encodeURIComponent(ticketCode)}`;
@@ -102,7 +118,7 @@ function renderSingleTicketCard(ticketCode, data) {
                 <div style="text-align: center; margin-top: 12px; background: #fff; padding: 14px; border-radius: 12px; border: 1.5px solid #fecdd3;">
                     <img src="${qrUrl}" alt="QR ${safeCode}" onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${fallbackQrUrl}';}" style="width: 165px; height: 165px;" />
                     <div style="font-size: 12px; color: #64748b; margin-top: 6px; margin-bottom: 10px;">Xuất trình mã QR này tại quầy Check-in</div>
-                    <button type="button" class="btn-download-single-card" data-ticket="${safeCode}" data-name="${safeName}" data-phone="${safePhone}" data-order="${escapeHtml(data.orderId || '')}" data-label="${safeLabel}" style="width: 100%; max-width: 280px; padding: 10px 16px; background: linear-gradient(135deg, #e11d48, #be123c); color: #fffbeb; font-weight: 800; font-size: 13px; border: 1.5px solid #fde047; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.35);">
+                    <button type="button" class="btn-download-single-card" data-ticket="${safeCode}" data-name="${safeName}" data-phone="${escapeHtml(data.phone || '')}" data-order="${escapeHtml(data.orderId || '')}" data-label="${safeLabel}" style="width: 100%; max-width: 280px; padding: 10px 16px; background: linear-gradient(135deg, #e11d48, #be123c); color: #fffbeb; font-weight: 800; font-size: 13px; border: 1.5px solid #fde047; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.35);">
                         💾 Tải Thẻ Vé Về Máy (Ảnh PNG)
                     </button>
                 </div>
@@ -124,7 +140,7 @@ async function lookupOrder(rawKeyword) {
 
     try {
         const upperKeyword = safeKeyword.toUpperCase();
-        if (upperKeyword.includes('-')) {
+        if (upperKeyword.includes('-') && !upperKeyword.startsWith('ORD-') && !upperKeyword.startsWith('POS-')) {
             const ticketRef = doc(db, FIREBASE_CONFIG.ticketsCollection || "tickets", upperKeyword);
             const ticketSnap = await getDoc(ticketRef);
             if (ticketSnap.exists()) {
@@ -187,7 +203,6 @@ if (initialCode && searchInput) {
     searchInput.value = initialCode;
     lookupOrder(initialCode);
 }
-
 
 function attachTicketDownloadHandlers() {
     if (!output) return;
