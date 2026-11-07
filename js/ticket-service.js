@@ -74,38 +74,29 @@ export async function generateTicketCode(orderId, ticketNumber, secretKey) {
 }
 
 /**
- * Sinh mã vé HMAC-SHA256 tất định (Deterministic) dựa trên giao dịch PayOS đã xác thực
- * Đảm bảo mã vé sinh tự động tại thanks.html, check-order.html và Auto-Pilot Admin trùng khớp 100%
+ * Sinh mã vé chuẩn định dạng HVC-XXXXXX-XXXX (Chữ ký tất định SHA-256 đồng bộ 100% với Google Apps Script Webhook)
+ * Đảm bảo mã vé sinh tự động tại Server Webhook PayOS, thanks.html, check-order.html và Admin trùng khớp tuyệt đối!
  */
 export async function generateDeterministicPayosTicketCode(orderId, ticketNumber, payosOrderCode, txReference = "PAID") {
     const prefix = (TICKET_SECURITY_CONFIG.ticketPrefix || "HVC").toUpperCase();
-    const randLen = TICKET_SECURITY_CONFIG.randomLength || 6;
-    const sigLen = TICKET_SECURITY_CONFIG.signatureLength || 4;
-    const seedKey = `PAYOS-AUTO-V1:${String(payosOrderCode || "").trim()}:${String(txReference || "PAID").trim()}`;
-    const payload = `${prefix}:${String(orderId || "").trim()}:${Number(ticketNumber) || 1}`;
+    const index = Number(ticketNumber) || 1;
+    const txRef = String(txReference || "PAID").trim();
+    const seed = `${String(orderId).trim()}#${index}#${Number(payosOrderCode)}#${txRef}`;
 
     const encoder = new TextEncoder();
-    const cryptoKey = await window.crypto.subtle.importKey(
-        "raw",
-        encoder.encode(seedKey),
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-    );
-    const sigBuf = await window.crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(payload));
-    const bytes = new Uint8Array(sigBuf);
+    const hashBuffer = await window.crypto.subtle.digest("SHA-256", encoder.encode(seed));
+    const rawHash = new Uint8Array(hashBuffer);
+    const base32Alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
-    let randomPart = "";
-    for (let i = 0; i < randLen; i++) {
-        randomPart += BASE32_ALPHABET[bytes[i] % BASE32_ALPHABET.length];
+    let body = "";
+    for (let i = 0; i < 6; i++) {
+        body += base32Alphabet[rawHash[i] % 32];
     }
-
-    let hexTail = "";
-    for (let i = randLen; i < randLen + 4; i++) {
-        hexTail += bytes[i].toString(16).padStart(2, "0").toUpperCase();
+    let sig = "";
+    for (let j = 6; j < 10; j++) {
+        sig += base32Alphabet[rawHash[j] % 32];
     }
-    const signaturePart = hexTail.slice(0, sigLen);
-    return `${prefix}-${randomPart}-${signaturePart}`;
+    return `${prefix}-${body}-${sig}`;
 }
 
 export async function verifyTicketCodeSignature(ticketCode, orderId, ticketNumber, secretKey) {

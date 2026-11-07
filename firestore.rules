@@ -140,7 +140,7 @@ service cloud.firestore {
       // Cho phép Super Admin hoặc hệ thống Tự động PayOS phát hành vé hợp lệ
       // Ràng buộc chặt: Định dạng mã vé chuẩn & số thứ tự vé không vượt quá quantity của đơn đã APPROVED
       allow create: if isSuperAdmin() || (
-        ticketId.matches('^HVC-[0-9A-Z]{6}-[0-9A-F]{4}$') &&
+        ticketId.matches('^HVC-[0-9A-Z]{6}-[0-9A-Z]{4}$') &&
         request.resource.data.ticketCode == ticketId &&
         request.resource.data.status == 'VALID' &&
         request.resource.data.checkedIn == false &&
