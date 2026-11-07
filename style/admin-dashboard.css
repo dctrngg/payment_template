@@ -1,0 +1,1330 @@
+/* ==============================================================================
+ * style/admin-dashboard.css — SUPER DASHBOARD QUẢN TRỊ ĐƠN VÉ & DÒNG TIỀN
+ * Concept: HÙNG VƯƠNG CONCERT: GAME ON (Night Crimson & Arcade Star Gold)
+ * Đồng bộ giao diện với trang đặt vé (index.html)
+ * ============================================================================== */
+
+:root {
+    --primary: #e11d48;
+    --primary-hover: #be123c;
+    --primary-dark: #881337;
+    --primary-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #9f1239 100%);
+    --crimson-panel: linear-gradient(165deg, #110206 0%, #26050e 52%, #4a0917 100%);
+    --arcade-gold: #fde047;
+    --arcade-amber: #fbbf24;
+    --emerald: #10b981;
+    --emerald-dark: #059669;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --bg-surface: #ffffff;
+    --bg-soft: #fff9fa;
+    --bg-subtle: #fff1f2;
+    --text-primary: #18060a;
+    --text-secondary: #4c1d28;
+    --text-muted: #64748b;
+    --border-rose: #fecdd3;
+    --border-strong: #fda4af;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-xl: 22px;
+    --shadow-card: 0 18px 40px -12px rgba(0, 0, 0, 0.55), 0 0 28px rgba(225, 29, 72, 0.18);
+    --shadow-sm: 0 4px 12px rgba(136, 19, 55, 0.08);
+    --font-sans: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", Consolas, ui-monospace, SFMono-Regular, monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #080204;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    padding: 20px 18px 64px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Nền bầu trời đêm đầy sao & hào quang đỏ Crimson giống trang mua vé */
+.page-bg-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background:
+        radial-gradient(1.5px 1.5px at 12% 14%, #fffbeb 90%, transparent),
+        radial-gradient(2px 2px at 28% 8%, #fde047 90%, transparent),
+        radial-gradient(1.5px 1.5px at 46% 18%, #ffffff 90%, transparent),
+        radial-gradient(2px 2px at 68% 10%, #fde047 90%, transparent),
+        radial-gradient(1.5px 1.5px at 84% 16%, #fffbeb 90%, transparent),
+        radial-gradient(2px 2px at 92% 28%, #fde047 90%, transparent),
+        radial-gradient(circle at 50% 65%, rgba(225, 29, 72, 0.36), rgba(136, 19, 55, 0.22) 45%, transparent 72%),
+        linear-gradient(180deg, #060103 0%, #160308 45%, #3f0713 82%, #120206 100%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.city-skyline-decor {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 90px;
+    background: linear-gradient(180deg, transparent 0%, rgba(8, 2, 4, 0.88) 100%);
+    border-top: 1px solid rgba(253, 224, 71, 0.14);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.container {
+    position: relative;
+    z-index: 2;
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+/* ================= CỔNG ĐĂNG NHẬP CONCEPT GAME ON ================= */
+.login-overlay {
+    position: relative;
+    z-index: 2;
+    max-width: 430px;
+    margin: 70px auto;
+    background: var(--crimson-panel);
+    border: 2px solid rgba(244, 63, 94, 0.55);
+    border-radius: var(--radius-xl);
+    padding: 34px 30px;
+    box-shadow: var(--shadow-card);
+    color: #fff;
+}
+
+.login-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(253, 224, 71, 0.15);
+    border: 1px solid rgba(253, 224, 71, 0.45);
+    color: var(--arcade-gold);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 12px;
+}
+
+.login-overlay h2 {
+    font-size: 22px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+    text-shadow: 0 2px 10px rgba(225, 29, 72, 0.5);
+}
+
+.login-overlay p {
+    color: #fecdd3;
+    font-size: 13.5px;
+    margin-bottom: 22px;
+}
+
+.login-field {
+    margin-bottom: 16px;
+}
+
+.login-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffe4e6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.login-field input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.96);
+    border: 2px solid #fda4af;
+    color: var(--text-primary);
+    padding: 11px 14px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    transition: all 0.15s;
+}
+
+.login-field input:focus {
+    border-color: var(--arcade-gold);
+    box-shadow: 0 0 0 3px rgba(253, 224, 71, 0.25);
+}
+
+.login-error {
+    color: #fecaca;
+    background: rgba(220, 38, 38, 0.25);
+    border: 1px solid #f87171;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: none;
+}
+
+/* ================= HERO HEADER SUPER DASHBOARD ================= */
+.top-header {
+    background: var(--crimson-panel);
+    border: 1.5px solid rgba(244, 63, 94, 0.45);
+    border-bottom: 3px solid var(--arcade-gold);
+    border-radius: var(--radius-xl);
+    padding: 20px 24px;
+    margin-bottom: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    box-shadow: var(--shadow-card);
+    color: #ffffff;
+}
+
+.brand-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.brand-poster-thumb {
+    width: 68px;
+    height: 46px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1.5px solid var(--arcade-gold);
+    box-shadow: 0 0 14px rgba(253, 224, 71, 0.3);
+}
+
+.brand-area h1 {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.2px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.brand-area p {
+    color: #fecdd3;
+    font-size: 12.5px;
+    margin-top: 3px;
+}
+
+.live-dot {
+    width: 10px;
+    height: 10px;
+    background-color: var(--arcade-gold);
+    border-radius: 2px;
+    display: inline-block;
+    animation: pulseGold 1.8s infinite;
+}
+
+@keyframes pulseGold {
+    0% { box-shadow: 0 0 0 0 rgba(253, 224, 71, 0.85); }
+    70% { box-shadow: 0 0 0 9px rgba(253, 224, 71, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(253, 224, 71, 0); }
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* ================= BUTTONS & PILLS ================= */
+button, .btn-link {
+    cursor: pointer;
+    font-family: var(--font-sans);
+    border-radius: var(--radius-md);
+    padding: 8px 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    transition: all 0.16s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+    line-height: 1.2;
+    border: 1px solid transparent;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-solid {
+    background: var(--primary-gradient);
+    color: #ffffff;
+    border: 1px solid #f43f5e;
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+}
+
+.btn-solid:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.btn-gold {
+    background: linear-gradient(135deg, #fde047 0%, #f59e0b 100%);
+    color: #24050d;
+    border: 1px solid #fef08a;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(251, 191, 36, 0.35);
+}
+
+.btn-gold:hover:not(:disabled) {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background: #ffffff;
+    color: var(--primary-dark);
+    border: 1.5px solid var(--border-strong);
+}
+
+.btn-outline:hover:not(:disabled) {
+    background: var(--bg-subtle);
+    border-color: var(--primary);
+}
+
+.btn-header-glass {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fffbeb;
+    border: 1px solid rgba(254, 205, 211, 0.35);
+}
+
+.btn-header-glass:hover:not(:disabled) {
+    background: rgba(225, 29, 72, 0.45);
+    border-color: var(--arcade-gold);
+    color: var(--arcade-gold);
+}
+
+.role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.role-super {
+    background: rgba(253, 224, 71, 0.18);
+    color: var(--arcade-gold);
+    border: 1px solid rgba(253, 224, 71, 0.55);
+}
+
+.role-reviewer {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffe4e6;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ================= THANH ĐIỀU KHIỂN THỜI GIAN (DATE RANGE BAR) ================= */
+.date-control-bar {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-rose);
+    border-radius: var(--radius-lg);
+    padding: 12px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow-card);
+}
+
+.date-presets {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.date-preset-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    text-transform: uppercase;
+    margin-right: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.preset-btn {
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-rose);
+    padding: 6px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.preset-btn.active {
+    background: var(--primary-gradient);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(225, 29, 72, 0.3);
+}
+
+.date-custom-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.date-custom-inputs input[type="date"] {
+    background: var(--bg-soft);
+    border: 1.5px solid var(--border-strong);
+    color: var(--text-primary);
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    outline: none;
+}
+
+.date-custom-inputs input[type="date"]:focus {
+    border-color: var(--primary);
+}
+
+/* ================= 6 THẺ KPI TRUNG TÂM (KHÔNG CHỈ TIÊU) ================= */
+.kpi-super-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.kpi-card {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-rose);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.kpi-card.kpi-crimson {
+    background: var(--crimson-panel);
+    border-color: rgba(253, 224, 71, 0.55);
+    color: #ffffff;
+}
+
+.kpi-card .kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.kpi-card .kpi-label {
+    font-size: 11.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--primary-dark);
+}
+
+.kpi-card.kpi-crimson .kpi-label {
+    color: #fecdd3;
+}
+
+.kpi-card .kpi-icon {
+    font-size: 18px;
+}
+
+.kpi-card .kpi-value {
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.kpi-card.kpi-crimson .kpi-value {
+    color: var(--arcade-gold);
+    text-shadow: 0 2px 12px rgba(253, 224, 71, 0.35);
+}
+
+.kpi-card .kpi-sub {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.kpi-card.kpi-crimson .kpi-sub {
+    color: #ffe4e6;
+}
+
+.trend-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+}
+
+.trend-up {
+    background: rgba(16, 185, 129, 0.16);
+    color: #059669;
+}
+
+.kpi-crimson .trend-up {
+    background: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+}
+
+.trend-down {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+}
+
+.trend-neutral {
+    background: rgba(100, 116, 139, 0.15);
+    color: #475569;
+}
+
+/* ================= KHU VỰC BIỂU ĐỒ & PHÂN TÍCH DÒNG TIỀN ================= */
+.analytics-section {
+    margin-bottom: 18px;
+}
+
+.analytics-grid-main {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.analytics-grid-secondary {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 1150px) {
+    .analytics-grid-main,
+    .analytics-grid-secondary {
+        grid-template-columns: 1fr;
+    }
+}
+
+.panel-card {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-rose);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-card);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--bg-subtle);
+}
+
+.panel-title {
+    font-size: 14.5px;
+    font-weight: 900;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.panel-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.chart-mode-tabs {
+    display: inline-flex;
+    background: var(--bg-subtle);
+    padding: 3px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-rose);
+}
+
+.chart-mode-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    border-radius: 6px;
+}
+
+.chart-mode-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+}
+
+/* Biểu đồ cột tương tác theo ngày */
+.daily-chart-container {
+    height: 235px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 28px 8px 8px 8px;
+    overflow-x: auto;
+    border-bottom: 1.5px solid var(--border-rose);
+    background: linear-gradient(180deg, rgba(255, 241, 242, 0.35) 0%, rgba(255, 255, 255, 0) 100%);
+    border-radius: var(--radius-sm);
+}
+
+.day-bar-col {
+    flex: 1;
+    min-width: 44px;
+    max-width: 78px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s;
+}
+
+.day-bar-col:hover {
+    transform: translateY(-2px);
+}
+
+.day-bar-col.selected-day .day-bar-fill {
+    background: linear-gradient(180deg, #fde047 0%, #e11d48 100%);
+    box-shadow: 0 0 12px rgba(225, 29, 72, 0.5);
+    border: 1.5px solid #881337;
+}
+
+.day-bar-val {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+
+.day-bar-fill {
+    width: 100%;
+    max-width: 38px;
+    min-height: 4px;
+    background: var(--primary-gradient);
+    border-radius: 6px 6px 2px 2px;
+    transition: height 0.25s ease, background 0.15s;
+}
+
+.day-bar-col:hover .day-bar-fill {
+    background: linear-gradient(180deg, #fb7185 0%, #be123c 100%);
+}
+
+.day-bar-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    white-space: nowrap;
+}
+
+.day-bar-sub {
+    font-size: 9.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* Bảng Sổ Quỹ Theo Ngày (Daily Cashflow Ledger) */
+.daily-ledger-wrap {
+    max-height: 265px;
+    overflow-y: auto;
+    border: 1px solid var(--border-rose);
+    border-radius: var(--radius-sm);
+}
+
+.mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+}
+
+.mini-table th, .mini-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #ffe4e6;
+}
+
+.mini-table th {
+    background: var(--bg-subtle);
+    color: var(--primary-dark);
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.mini-table tbody tr {
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.mini-table tbody tr:hover td {
+    background: #fff1f2;
+}
+
+.mini-table tbody tr.active-row td {
+    background: #ffe4e6;
+    font-weight: 700;
+}
+
+/* Biểu đồ Khung Giờ Mua Vé (24h Heatmap Bars) */
+.hourly-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.hour-cell {
+    background: var(--bg-soft);
+    border: 1px solid var(--border-rose);
+    border-radius: 6px;
+    padding: 6px 3px;
+    text-align: center;
+    transition: transform 0.12s;
+}
+
+.hour-cell:hover {
+    transform: scale(1.06);
+    border-color: var(--primary);
+}
+
+.hour-cell .h-time {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.hour-cell .h-count {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--primary-dark);
+    margin-top: 2px;
+}
+
+/* Progress rows cho Cơ cấu đơn / CTV / Voucher */
+.metric-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    max-height: 230px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.metric-row {
+    background: var(--bg-soft);
+    border: 1px solid var(--border-rose);
+    border-radius: var(--radius-sm);
+    padding: 8px 11px;
+    cursor: pointer;
+    transition: all 0.12s;
+}
+
+.metric-row:hover {
+    background: var(--bg-subtle);
+    border-color: var(--primary);
+}
+
+.metric-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.metric-bar-track {
+    width: 100%;
+    height: 6px;
+    background: #ffe4e6;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.metric-bar-fill {
+    height: 100%;
+    background: var(--primary-gradient);
+    border-radius: 99px;
+}
+
+/* ================= CẤU HÌNH BẢO MẬT & HÀNG ĐỢI ================= */
+.bootstrap-banner {
+    background: var(--bg-surface);
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-lg);
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: var(--shadow-card);
+}
+
+.security-panel {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    display: none;
+    box-shadow: var(--shadow-card);
+}
+
+.security-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+@media (max-width: 900px) {
+    .security-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.security-field label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 5px;
+}
+
+.security-field input, .form-input {
+    width: 100%;
+    background: var(--bg-soft);
+    border: 1.5px solid var(--border-strong);
+    color: var(--text-primary);
+    padding: 8px 11px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-family: var(--font-mono);
+    outline: none;
+}
+
+.security-field input:focus, .form-input:focus {
+    border-color: var(--primary);
+    background: #fff;
+}
+
+.batch-bar {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-rose);
+    border-left: 5px solid var(--primary);
+    border-radius: var(--radius-md);
+    padding: 12px 18px;
+    margin-bottom: 16px;
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ================= THANH TÌM KIẾM & LỌC ĐA CHIỀU ================= */
+.toolbar {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-rose);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow-card);
+}
+
+.toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.search-box-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 280px;
+    display: flex;
+    align-items: center;
+}
+
+.search-box-wrap input {
+    width: 100%;
+    background: var(--bg-soft);
+    border: 1.5px solid var(--border-strong);
+    color: var(--text-primary);
+    padding: 9px 75px 9px 14px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.15s;
+}
+
+.search-box-wrap input:focus {
+    background: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
+}
+
+.search-Clear-btn {
+    position: absolute;
+    right: 8px;
+    background: var(--bg-subtle);
+    color: var(--primary-dark);
+    border: none;
+    padding: 4px 9px;
+    font-size: 11px;
+    border-radius: 6px;
+    display: none;
+}
+
+.filter-tabs {
+    display: inline-flex;
+    background: var(--bg-subtle);
+    padding: 3px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-rose);
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.12s;
+}
+
+.filter-tab.active {
+    background: var(--primary-gradient);
+    color: #ffffff;
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-tab .count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 99px;
+    background: rgba(0, 0, 0, 0.12);
+    margin-left: 4px;
+}
+
+.sub-filter-select {
+    background: var(--bg-soft);
+    border: 1.5px solid var(--border-rose);
+    color: var(--text-secondary);
+    padding: 7px 11px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--font-sans);
+    outline: none;
+    cursor: pointer;
+}
+
+.sub-filter-select:focus {
+    border-color: var(--primary);
+}
+
+.active-drilldown-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff1f2;
+    border: 1px dashed var(--primary);
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    color: var(--primary-dark);
+    font-weight: 700;
+}
+
+/* ================= BẢNG DỮ LIỆU ĐƠN HÀNG ================= */
+.table-wrapper {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-rose);
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+    box-shadow: var(--shadow-card);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+
+th, td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #ffe4e6;
+    vertical-align: middle;
+}
+
+th {
+    background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
+    color: var(--primary-dark);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+tbody tr {
+    transition: background-color 0.1s;
+}
+
+tbody tr:hover td {
+    background-color: var(--bg-soft);
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.mono-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.copyable {
+    cursor: pointer;
+    border-bottom: 1px dotted var(--border-strong);
+    transition: color 0.12s;
+}
+
+.copyable:hover {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.customer-name {
+    font-weight: 800;
+    color: var(--text-primary);
+    font-size: 13.5px;
+}
+
+.sub-meta {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.memo-tag {
+    display: inline-block;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-rose);
+    color: var(--primary-dark);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 3px;
+}
+
+.voucher-pill {
+    display: inline-block;
+    background: #fef9c3;
+    border: 1px solid #fde047;
+    color: #854d0e;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+}
+
+.referrer-pill {
+    display: inline-block;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 4px;
+    margin-top: 3px;
+}
+
+/* ================= STATUS BADGES ================= */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.badge-pending {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px dashed #fcd34d;
+}
+
+.badge-verified {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+}
+
+.badge-approved {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #6ee7b7;
+}
+
+/* ================= TICKET PILLS & BILL THUMBNAIL ================= */
+.ticket-code-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-strong);
+    color: var(--primary-dark);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 5px;
+    margin: 2px 2px 2px 0;
+}
+
+.ticket-code-pill.checked-in {
+    background: #ecfdf5;
+    border-color: #10b981;
+    color: #065f46;
+}
+
+.bill-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    border: 1.5px solid var(--border-strong);
+    cursor: pointer;
+    transition: transform 0.15s;
+    background: var(--bg-subtle);
+}
+
+.bill-thumb:hover {
+    transform: scale(1.08);
+    border-color: var(--primary);
+}
+
+.btn-table-action {
+    padding: 6px 10px;
+    font-size: 11.5px;
+    border-radius: var(--radius-sm);
+}
+
+.status-msg {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+/* ================= MODALS ================= */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 2, 5, 0.78);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 9999;
+}
+
+.modal-card {
+    background: var(--bg-surface);
+    border: 2px solid var(--border-strong);
+    border-radius: var(--radius-xl);
+    max-width: 740px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+}
+
+.lightbox-card {
+    background: var(--bg-surface);
+    border: 2px solid var(--border-strong);
+    border-radius: var(--radius-xl);
+    max-width: 880px;
+    width: 95%;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+}
+
+.lightbox-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-rose);
+    background: var(--bg-surface);
+}
+
+.lightbox-body {
+    padding: 20px;
+    overflow: auto;
+    text-align: center;
+    background: #120206;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 340px;
+}
+
+.lightbox-img {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: var(--radius-sm);
+    transition: transform 0.2s ease;
+}
+
+.lightbox-toolbar {
+    padding: 12px 20px;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-rose);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .pos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ================= TOAST ================= */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--crimson-panel);
+    color: var(--arcade-gold);
+    border: 1.5px solid var(--arcade-gold);
+    padding: 11px 18px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: var(--shadow-card);
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 10000;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}

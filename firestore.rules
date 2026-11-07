@@ -90,7 +90,7 @@ service cloud.firestore {
     // 3. COLLECTION 'orders': ĐƠN ĐẶT MUA VÉ (KHÔNG CHỨA MÃ VÉ THẬT)
     // =========================================================================
     match /orders/{orderId} {
-      allow create: if isValidOrderCreate(request.resource.data);
+      allow create: if isSuperAdmin() || isValidOrderCreate(request.resource.data);
       allow get: if true;
       allow list: if isStaffAuthenticated();
 
